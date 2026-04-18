@@ -3,6 +3,7 @@ import {
   GoogleAuthProvider,
   browserLocalPersistence,
   getAuth,
+  getRedirectResult,
   onAuthStateChanged,
   setPersistence,
   signInWithPopup,
@@ -204,6 +205,13 @@ async function initFirebase() {
     state.syncMode = "signed-out";
     renderAuthPanel();
 
+    getRedirectResult(auth).catch((error) => {
+      console.error(error);
+      state.syncMode = "signed-out";
+      renderAuthPanel();
+      showToast(getAuthErrorMessage(error));
+    });
+
     onAuthStateChanged(auth, (user) => {
       if (state.unsubscribeTransactions) {
         state.unsubscribeTransactions();
@@ -284,7 +292,7 @@ async function handleGoogleSignIn() {
     console.error(error);
     state.syncMode = state.user ? "cloud" : "signed-out";
     renderAuthPanel();
-    showToast("登入失敗，請確認 Firebase Console 已啟用 Google 登入與授權網域");
+    showToast(getAuthErrorMessage(error));
   }
 }
 
@@ -1063,4 +1071,23 @@ function stringifyError(error) {
   }
 
   return error.message || String(error);
+}
+
+function getAuthErrorMessage(error) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "auth/unauthorized-domain":
+      return "登入失敗：請到 Firebase Authentication 的授權網域加入 ncusspm25.github.io";
+    case "auth/operation-not-allowed":
+      return "登入失敗：Firebase Authentication 裡的 Google 登入尚未啟用";
+    case "auth/popup-blocked":
+      return "登入失敗：瀏覽器擋住了 Google 登入視窗，請允許彈出視窗後重試";
+    case "auth/popup-closed-by-user":
+      return "登入已取消：Google 登入視窗被關閉";
+    case "auth/cancelled-popup-request":
+      return "登入中斷：有另一個登入視窗正在處理";
+    default:
+      return `登入失敗：${stringifyError(error) || "請檢查 Firebase Authentication 設定"}`;
+  }
 }
