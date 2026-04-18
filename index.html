@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f4ede1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="口袋記帳">
+  <meta name="description" content="個人用、可離線的手機記帳 App">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>口袋記帳</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Pocket Ledger</p>
+        <h1>口袋記帳</h1>
+        <p class="hero-copy">手機就能打開，資料保存在你的裝置裡，離線也能記。</p>
+      </div>
+      <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
+    </header>
+
+    <main class="layout">
+      <section class="panel summary-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">本月概況</p>
+            <h2 id="summaryTitle">2026 年 4 月</h2>
+          </div>
+          <label class="month-picker">
+            <span>月份</span>
+            <input id="summaryMonth" type="month">
+          </label>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>結餘</span>
+            <strong id="balanceValue">$0</strong>
+          </article>
+          <article class="stat-card income">
+            <span>收入</span>
+            <strong id="incomeValue">$0</strong>
+          </article>
+          <article class="stat-card expense">
+            <span>支出</span>
+            <strong id="expenseValue">$0</strong>
+          </article>
+        </div>
+
+        <div class="insight-grid">
+          <article class="mini-card">
+            <span>最大支出分類</span>
+            <strong id="topCategoryValue">暫無資料</strong>
+          </article>
+          <article class="mini-card">
+            <span>記錄筆數</span>
+            <strong id="transactionCountValue">0 筆</strong>
+          </article>
+        </div>
+
+        <section class="chart-card">
+          <div class="chart-header">
+            <h3>支出分類</h3>
+            <span id="chartHint">本月支出分布</span>
+          </div>
+          <div id="categoryChart" class="chart-list empty-state-inline">
+            本月還沒有支出紀錄
+          </div>
+        </section>
+      </section>
+
+      <section class="panel form-panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">新增收支</p>
+            <h2 id="formTitle">快速記一筆</h2>
+          </div>
+          <button id="cancelEditButton" class="ghost-button" hidden>取消編輯</button>
+        </div>
+
+        <form id="transactionForm" class="entry-form">
+          <input id="transactionId" type="hidden">
+
+          <div class="type-toggle" role="radiogroup" aria-label="收支類型">
+            <label>
+              <input type="radio" name="type" value="expense" checked>
+              <span>支出</span>
+            </label>
+            <label>
+              <input type="radio" name="type" value="income">
+              <span>收入</span>
+            </label>
+          </div>
+
+          <label>
+            <span>金額</span>
+            <input id="amountInput" type="number" inputmode="decimal" min="0" step="1" placeholder="例如 120">
+          </label>
+
+          <label>
+            <span>分類</span>
+            <input id="categoryInput" type="text" list="categoryOptions" placeholder="例如 餐飲">
+          </label>
+          <datalist id="categoryOptions"></datalist>
+
+          <label>
+            <span>日期</span>
+            <input id="dateInput" type="date">
+          </label>
+
+          <label>
+            <span>備註</span>
+            <textarea id="noteInput" rows="3" placeholder="可選填，例如 午餐、捷運、薪水"></textarea>
+          </label>
+
+          <button type="submit" class="primary-button">儲存紀錄</button>
+        </form>
+      </section>
+
+      <section class="panel transactions-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">紀錄列表</p>
+            <h2>查詢與整理</h2>
+          </div>
+          <button id="clearFiltersButton" class="ghost-button">清除篩選</button>
+        </div>
+
+        <div class="filters-grid">
+          <label>
+            <span>月份</span>
+            <input id="filterMonth" type="month">
+          </label>
+          <label>
+            <span>類型</span>
+            <select id="filterType">
+              <option value="all">全部</option>
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+          </label>
+          <label>
+            <span>搜尋</span>
+            <input id="filterQuery" type="search" placeholder="分類或備註">
+          </label>
+        </div>
+
+        <div id="transactionList" class="transaction-list empty-state">
+          目前還沒有任何記帳資料
+        </div>
+      </section>
+
+      <section class="panel backup-panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">備份</p>
+            <h2>保留自己的資料</h2>
+          </div>
+        </div>
+
+        <div class="backup-actions">
+          <button id="exportJsonButton" class="secondary-button">匯出 JSON</button>
+          <button id="exportCsvButton" class="secondary-button">匯出 CSV</button>
+          <label class="file-button">
+            <input id="importInput" type="file" accept="application/json">
+            <span>匯入 JSON</span>
+          </label>
+        </div>
+
+        <p class="backup-note">資料預設只存在這台裝置的瀏覽器。建議偶爾匯出備份，換手機時再匯入。</p>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <template id="transactionItemTemplate">
+    <article class="transaction-item">
+      <div class="transaction-main">
+        <div class="transaction-meta">
+          <p class="transaction-category"></p>
+          <p class="transaction-note"></p>
+        </div>
+        <div class="transaction-side">
+          <strong class="transaction-amount"></strong>
+          <span class="transaction-date"></span>
+        </div>
+      </div>
+      <div class="transaction-actions">
+        <span class="transaction-badge"></span>
+        <button class="ghost-button edit-button" type="button">編輯</button>
+        <button class="ghost-button danger-button delete-button" type="button">刪除</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
