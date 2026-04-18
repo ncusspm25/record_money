@@ -80,6 +80,11 @@ button {
   line-height: 1.05;
 }
 
+#summaryTitle {
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  letter-spacing: -0.03em;
+}
+
 .hero h1 {
   font-size: clamp(2.3rem, 6vw, 4.6rem);
 }
@@ -643,5 +648,31 @@ textarea:focus {
   .panel {
     padding: 18px;
     border-radius: 22px;
+  }
+
+  .summary-panel .section-heading {
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .summary-panel .section-heading > div {
+    display: grid;
+    gap: 6px;
+  }
+
+  .summary-panel .section-heading h2 {
+    font-size: 2.1rem;
+    line-height: 1.08;
+  }
+
+  .summary-panel .month-picker {
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px solid rgba(79, 59, 38, 0.08);
+  }
+
+  .summary-panel .month-picker input {
+    min-height: 54px;
+    font-size: 1rem;
   }
 }
