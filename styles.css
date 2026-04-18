@@ -75,6 +75,26 @@ button {
   padding: 8px 4px 28px;
 }
 
+.pet-stickers {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.pet-sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(255, 250, 242, 0.78);
+  border: 1px solid rgba(80, 55, 35, 0.08);
+  box-shadow: var(--shadow-sm);
+  font-size: 1.5rem;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: var(--primary-strong);
@@ -170,6 +190,20 @@ button {
   color: var(--muted);
   line-height: 1.65;
   font-size: 0.96rem;
+}
+
+.form-pets {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 249, 240, 0.86);
+  border: 1px solid rgba(80, 55, 35, 0.08);
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 /* ── Form Labels ── */
@@ -628,6 +662,11 @@ textarea:focus {
   gap: 14px;
 }
 
+.form-actions {
+  display: grid;
+  gap: 10px;
+}
+
 /* ── Filters ── */
 .filters-grid {
   display: grid;
@@ -730,6 +769,12 @@ textarea:focus {
   letter-spacing: 0.03em;
 }
 
+.transaction-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .transaction-badge.expense {
   background: var(--expense-light);
   color: var(--expense);
@@ -738,6 +783,21 @@ textarea:focus {
 .transaction-badge.income {
   background: var(--income-light);
   color: var(--income);
+}
+
+.transaction-badge-secondary {
+  background: rgba(80, 55, 35, 0.06);
+  color: var(--muted);
+}
+
+.transaction-badge-secondary.need {
+  background: var(--income-light);
+  color: var(--income);
+}
+
+.transaction-badge-secondary.want {
+  background: rgba(201, 104, 48, 0.12);
+  color: var(--primary-strong);
 }
 
 /* ── Backup ── */
@@ -833,6 +893,10 @@ textarea:focus {
     padding-right: 14px;
   }
 
+  .pet-stickers {
+    margin-left: 0;
+  }
+
   .hero,
   .section-heading,
   .transaction-main,
@@ -853,7 +917,9 @@ textarea:focus {
 
   .account-actions button,
   .account-actions .secondary-button,
-  .backup-actions > * {
+  .backup-actions > *,
+  .form-actions > *,
+  .file-button {
     width: 100%;
   }
 
@@ -918,6 +984,11 @@ textarea:focus {
   .hero {
     padding-top: 4px;
     padding-bottom: 20px;
+  }
+
+  .form-pets {
+    border-radius: 18px;
+    line-height: 1.5;
   }
 
   .hero h1 {

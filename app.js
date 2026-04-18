@@ -24,8 +24,8 @@ const STORAGE_KEY = "pocket-ledger-transactions";
 const SETTINGS_KEY = "pocket-ledger-settings";
 
 const DEFAULT_CATEGORIES = {
-  expense: ["餐飲", "交通", "日用品", "娛樂", "醫療", "房租", "水電", "學習"],
-  income: ["薪水", "獎金", "接案", "投資", "退款", "其他收入"],
+  expense: ["餐飲", "交通", "日用品", "雜費", "娛樂", "自訂分類"],
+  income: ["薪水", "獎金", "接案", "投資", "退款", "其他收入", "自訂分類"],
 };
 
 const state = {
@@ -53,8 +53,11 @@ const elements = {
   cancelEditButton: document.querySelector("#cancelEditButton"),
   saveButton: document.querySelector("#saveButton"),
   amountInput: document.querySelector("#amountInput"),
-  categoryInput: document.querySelector("#categoryInput"),
-  categoryOptions: document.querySelector("#categoryOptions"),
+  categorySelect: document.querySelector("#categorySelect"),
+  customCategoryField: document.querySelector("#customCategoryField"),
+  customCategoryInput: document.querySelector("#customCategoryInput"),
+  needWantField: document.querySelector("#needWantField"),
+  needWantSelect: document.querySelector("#needWantSelect"),
   dateInput: document.querySelector("#dateInput"),
   noteInput: document.querySelector("#noteInput"),
   summaryMonth: document.querySelector("#summaryMonth"),
@@ -108,6 +111,8 @@ async function bootstrap() {
 
   attachEventListeners();
   renderCategoryOptions();
+  updateCategoryVisibility();
+  updateNeedWantVisibility();
   render();
   registerServiceWorker();
   await initFirebase();
@@ -116,6 +121,15 @@ async function bootstrap() {
 function attachEventListeners() {
   elements.transactionForm.addEventListener("submit", handleSubmit);
   elements.cancelEditButton.addEventListener("click", resetForm);
+  elements.categorySelect.addEventListener("change", updateCategoryVisibility);
+
+  for (const radio of elements.transactionForm.querySelectorAll('input[name="type"]')) {
+    radio.addEventListener("change", () => {
+      renderCategoryOptions();
+      updateCategoryVisibility();
+      updateNeedWantVisibility();
+    });
+  }
 
   elements.summaryMonth.addEventListener("input", (event) => {
     state.summaryMonth = event.target.value;
@@ -310,9 +324,10 @@ async function handleSubmit(event) {
   const formData = new FormData(elements.transactionForm);
   const type = formData.get("type");
   const amount = Number(elements.amountInput.value);
-  const category = elements.categoryInput.value.trim();
+  const category = getSelectedCategory();
   const date = elements.dateInput.value;
   const note = elements.noteInput.value.trim();
+  const needWant = type === "expense" ? elements.needWantSelect.value : "";
   const existingId = elements.transactionId.value;
   const existing = state.transactions.find((item) => item.id === existingId);
 
@@ -324,7 +339,11 @@ async function handleSubmit(event) {
 
   if (!category) {
     showToast("請輸入分類");
-    elements.categoryInput.focus();
+    if (elements.categorySelect.value === "自訂分類") {
+      elements.customCategoryInput.focus();
+    } else {
+      elements.categorySelect.focus();
+    }
     return;
   }
 
@@ -339,6 +358,7 @@ async function handleSubmit(event) {
     type: type === "income" ? "income" : "expense",
     amount,
     category,
+    needWant,
     date,
     note,
     createdAt: existing?.createdAt || new Date().toISOString(),
@@ -450,6 +470,7 @@ function renderTransactions() {
     const amount = node.querySelector(".transaction-amount");
     const date = node.querySelector(".transaction-date");
     const badge = node.querySelector(".transaction-badge");
+    const secondaryBadge = node.querySelector(".transaction-badge-secondary");
     const editButton = node.querySelector(".edit-button");
     const deleteButton = node.querySelector(".delete-button");
 
@@ -460,6 +481,16 @@ function renderTransactions() {
     date.textContent = formatDisplayDate(item.date);
     badge.textContent = item.type === "expense" ? "支出" : "收入";
     badge.classList.add(item.type);
+    if (item.type === "expense" && item.needWant) {
+      secondaryBadge.hidden = false;
+      secondaryBadge.textContent = item.needWant === "want" ? "想要" : "需要";
+      secondaryBadge.classList.toggle("want", item.needWant === "want");
+      secondaryBadge.classList.toggle("need", item.needWant !== "want");
+    } else {
+      secondaryBadge.hidden = true;
+      secondaryBadge.textContent = "";
+      secondaryBadge.classList.remove("want", "need");
+    }
 
     editButton.addEventListener("click", () => startEdit(item.id));
     deleteButton.addEventListener("click", () => void deleteTransaction(item.id));
@@ -471,20 +502,19 @@ function renderTransactions() {
 }
 
 function renderCategoryOptions() {
-  const customCategories = Array.from(
-    new Set(state.transactions.map((item) => item.category.trim()).filter(Boolean))
-  ).sort((left, right) => left.localeCompare(right, "zh-Hant"));
+  const type = getCurrentType();
+  const categories = DEFAULT_CATEGORIES[type];
+  const selected = elements.categorySelect.value;
+  elements.categorySelect.innerHTML = [
+    '<option value="">請選擇分類</option>',
+    ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`),
+  ].join("");
 
-  const allCategories = [
-    ...DEFAULT_CATEGORIES.expense,
-    ...DEFAULT_CATEGORIES.income,
-    ...customCategories,
-  ];
-
-  const uniqueCategories = Array.from(new Set(allCategories));
-  elements.categoryOptions.innerHTML = uniqueCategories
-    .map((category) => `<option value="${escapeHtml(category)}"></option>`)
-    .join("");
+  if (categories.includes(selected)) {
+    elements.categorySelect.value = selected;
+  } else if (!selected && categories.includes("餐飲") && type === "expense") {
+    elements.categorySelect.value = "餐飲";
+  }
 }
 
 function renderCategoryChart(expenseByCategory, totalExpense) {
@@ -654,7 +684,6 @@ function startEdit(id) {
 
   elements.transactionId.value = item.id;
   elements.amountInput.value = String(item.amount);
-  elements.categoryInput.value = item.category;
   elements.dateInput.value = item.date;
   elements.noteInput.value = item.note;
   elements.formTitle.textContent = "編輯記錄";
@@ -664,6 +693,19 @@ function startEdit(id) {
   if (radio) {
     radio.checked = true;
   }
+
+  renderCategoryOptions();
+  if (DEFAULT_CATEGORIES[item.type].includes(item.category)) {
+    elements.categorySelect.value = item.category;
+    elements.customCategoryInput.value = "";
+  } else {
+    elements.categorySelect.value = "自訂分類";
+    elements.customCategoryInput.value = item.category;
+  }
+
+  elements.needWantSelect.value = item.needWant === "want" ? "want" : "need";
+  updateCategoryVisibility();
+  updateNeedWantVisibility();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -675,6 +717,10 @@ function resetForm() {
   elements.dateInput.value = formatDateInput(new Date());
   elements.formTitle.textContent = "快速記一筆";
   elements.cancelEditButton.hidden = true;
+  elements.needWantSelect.value = "need";
+  renderCategoryOptions();
+  updateCategoryVisibility();
+  updateNeedWantVisibility();
 }
 
 async function deleteTransaction(id) {
@@ -729,11 +775,12 @@ function exportJson() {
 }
 
 function exportCsv() {
-  const header = ["日期", "類型", "分類", "金額", "備註"];
+  const header = ["日期", "類型", "分類", "需要或想要", "金額", "備註"];
   const rows = state.transactions.map((item) => [
     item.date,
     item.type === "expense" ? "支出" : "收入",
     item.category,
+    item.needWant === "want" ? "想要" : item.needWant === "need" ? "需要" : "",
     item.amount,
     item.note || "",
   ]);
@@ -850,6 +897,7 @@ function normalizeTransaction(item) {
     type,
     amount,
     category,
+    needWant: type === "expense" ? (item.needWant === "want" ? "want" : "need") : "",
     date,
     note: String(item.note || "").trim(),
     createdAt: String(item.createdAt || new Date().toISOString()),
@@ -1037,6 +1085,36 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function getCurrentType() {
+  return elements.transactionForm.querySelector('input[name="type"]:checked')?.value === "income"
+    ? "income"
+    : "expense";
+}
+
+function getSelectedCategory() {
+  const selected = elements.categorySelect.value;
+  if (selected === "自訂分類") {
+    return elements.customCategoryInput.value.trim();
+  }
+  return selected.trim();
+}
+
+function updateCategoryVisibility() {
+  const isCustom = elements.categorySelect.value === "自訂分類";
+  elements.customCategoryField.hidden = !isCustom;
+  if (!isCustom) {
+    elements.customCategoryInput.value = "";
+  }
+}
+
+function updateNeedWantVisibility() {
+  const isExpense = getCurrentType() === "expense";
+  elements.needWantField.hidden = !isExpense;
+  if (!isExpense) {
+    elements.needWantSelect.value = "need";
+  }
 }
 
 function createId() {
