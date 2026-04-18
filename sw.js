@@ -1,9 +1,10 @@
-const CACHE_NAME = "pocket-ledger-v1";
+const CACHE_NAME = "pocket-ledger-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./firebase-config.js",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg",
   "./assets/icons/icon-192.png",

@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="口袋記帳">
-  <meta name="description" content="個人用、可離線的手機記帳 App">
+  <meta name="description" content="可在手機使用、支援 Google 登入與 Firebase Firestore 的個人記帳 App">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
@@ -20,12 +20,37 @@
       <div>
         <p class="eyebrow">Pocket Ledger</p>
         <h1>口袋記帳</h1>
-        <p class="hero-copy">手機就能打開，資料保存在你的裝置裡，離線也能記。</p>
+        <p class="hero-copy">支援手機、主畫面安裝、Google 登入與 Firestore 雲端同步。沒設定 Firebase 時，也能先用本機模式記帳。</p>
       </div>
       <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
     </header>
 
     <main class="layout">
+      <section class="panel account-panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">同步模式</p>
+            <h2>登入與資料位置</h2>
+          </div>
+          <span id="syncModeBadge" class="mode-badge local">本機模式</span>
+        </div>
+
+        <div class="account-card">
+          <div class="account-copy">
+            <p id="accountStatus" class="account-status">目前尚未登入，資料只會存在這台裝置的瀏覽器裡。</p>
+            <p id="accountDetail" class="account-detail">設定 Firebase 後，登入 Google 帳號就能把資料同步到你自己的 Firestore。</p>
+          </div>
+
+          <div class="account-actions">
+            <button id="signInButton" class="primary-button" type="button">Google 登入</button>
+            <button id="signOutButton" class="ghost-button" type="button" hidden>登出</button>
+            <button id="migrateButton" class="secondary-button" type="button" hidden>把本機資料同步到雲端</button>
+          </div>
+        </div>
+
+        <p id="accountHint" class="account-hint">公開網址公開的是程式，不是你的資料。真正的資料是否私密，取決於 Firebase Authentication 與 Firestore 規則。</p>
+      </section>
+
       <section class="panel summary-panel">
         <div class="section-heading">
           <div>
@@ -119,7 +144,7 @@
             <textarea id="noteInput" rows="3" placeholder="可選填，例如 午餐、捷運、薪水"></textarea>
           </label>
 
-          <button type="submit" class="primary-button">儲存紀錄</button>
+          <button id="saveButton" type="submit" class="primary-button">儲存紀錄</button>
         </form>
       </section>
 
@@ -165,15 +190,15 @@
         </div>
 
         <div class="backup-actions">
-          <button id="exportJsonButton" class="secondary-button">匯出 JSON</button>
-          <button id="exportCsvButton" class="secondary-button">匯出 CSV</button>
+          <button id="exportJsonButton" class="secondary-button" type="button">匯出 JSON</button>
+          <button id="exportCsvButton" class="secondary-button" type="button">匯出 CSV</button>
           <label class="file-button">
             <input id="importInput" type="file" accept="application/json">
             <span>匯入 JSON</span>
           </label>
         </div>
 
-        <p class="backup-note">資料預設只存在這台裝置的瀏覽器。建議偶爾匯出備份，換手機時再匯入。</p>
+        <p id="backupNote" class="backup-note">目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。</p>
       </section>
     </main>
   </div>
@@ -200,6 +225,6 @@
     </article>
   </template>
 
-  <script src="app.js" defer></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,3 +1,25 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import {
+  GoogleAuthProvider,
+  browserLocalPersistence,
+  getAuth,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getFirestore,
+  onSnapshot,
+  setDoc,
+  writeBatch,
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase-config.js";
+
 const STORAGE_KEY = "pocket-ledger-transactions";
 const SETTINGS_KEY = "pocket-ledger-settings";
 
@@ -8,6 +30,7 @@ const DEFAULT_CATEGORIES = {
 
 const state = {
   transactions: [],
+  localTransactions: [],
   filters: {
     month: "",
     type: "all",
@@ -15,6 +38,12 @@ const state = {
   },
   summaryMonth: "",
   installPrompt: null,
+  user: null,
+  syncMode: "local",
+  syncError: "",
+  firebaseReady: false,
+  firebase: null,
+  unsubscribeTransactions: null,
 };
 
 const elements = {
@@ -22,6 +51,7 @@ const elements = {
   transactionId: document.querySelector("#transactionId"),
   formTitle: document.querySelector("#formTitle"),
   cancelEditButton: document.querySelector("#cancelEditButton"),
+  saveButton: document.querySelector("#saveButton"),
   amountInput: document.querySelector("#amountInput"),
   categoryInput: document.querySelector("#categoryInput"),
   categoryOptions: document.querySelector("#categoryOptions"),
@@ -46,13 +76,21 @@ const elements = {
   importInput: document.querySelector("#importInput"),
   toast: document.querySelector("#toast"),
   installButton: document.querySelector("#installButton"),
+  syncModeBadge: document.querySelector("#syncModeBadge"),
+  accountStatus: document.querySelector("#accountStatus"),
+  accountDetail: document.querySelector("#accountDetail"),
+  accountHint: document.querySelector("#accountHint"),
+  signInButton: document.querySelector("#signInButton"),
+  signOutButton: document.querySelector("#signOutButton"),
+  migrateButton: document.querySelector("#migrateButton"),
+  backupNote: document.querySelector("#backupNote"),
 };
 
 let toastTimer = null;
 
-bootstrap();
+void bootstrap();
 
-function bootstrap() {
+async function bootstrap() {
   const today = new Date();
   const currentMonth = formatMonthInput(today);
   const todayDate = formatDateInput(today);
@@ -64,13 +102,15 @@ function bootstrap() {
   elements.filterMonth.value = currentMonth;
   elements.dateInput.value = todayDate;
 
-  state.transactions = loadTransactions();
+  state.localTransactions = loadLocalTransactions();
+  state.transactions = [...state.localTransactions];
   hydrateSettings();
 
-  renderCategoryOptions();
   attachEventListeners();
+  renderCategoryOptions();
   render();
   registerServiceWorker();
+  await initFirebase();
 }
 
 function attachEventListeners() {
@@ -115,6 +155,9 @@ function attachEventListeners() {
   elements.exportJsonButton.addEventListener("click", exportJson);
   elements.exportCsvButton.addEventListener("click", exportCsv);
   elements.importInput.addEventListener("change", importJson);
+  elements.signInButton.addEventListener("click", handleGoogleSignIn);
+  elements.signOutButton.addEventListener("click", handleSignOut);
+  elements.migrateButton.addEventListener("click", migrateLocalToCloud);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -140,7 +183,126 @@ function attachEventListeners() {
   });
 }
 
-function handleSubmit(event) {
+async function initFirebase() {
+  if (!isFirebaseConfigured(firebaseConfig)) {
+    state.syncMode = "config-missing";
+    renderAuthPanel();
+    return;
+  }
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+
+    await setPersistence(auth, browserLocalPersistence);
+
+    state.firebaseReady = true;
+    state.firebase = { app, auth, db, provider };
+    state.syncMode = "signed-out";
+    renderAuthPanel();
+
+    onAuthStateChanged(auth, (user) => {
+      if (state.unsubscribeTransactions) {
+        state.unsubscribeTransactions();
+        state.unsubscribeTransactions = null;
+      }
+
+      state.user = user;
+
+      if (!user) {
+        state.syncMode = "signed-out";
+        state.transactions = [...state.localTransactions];
+        renderCategoryOptions();
+        render();
+        renderAuthPanel();
+        return;
+      }
+
+      state.syncMode = "syncing";
+      renderAuthPanel();
+      subscribeToCloudTransactions(user.uid);
+    });
+  } catch (error) {
+    console.error(error);
+    state.syncMode = "error";
+    state.syncError = stringifyError(error);
+    renderAuthPanel();
+    showToast("Firebase 初始化失敗");
+  }
+}
+
+function subscribeToCloudTransactions(uid) {
+  if (!state.firebase) {
+    return;
+  }
+
+  const transactionsRef = collection(state.firebase.db, "users", uid, "transactions");
+
+  state.unsubscribeTransactions = onSnapshot(
+    transactionsRef,
+    (snapshot) => {
+      state.transactions = snapshot.docs
+        .map((entry) => normalizeTransaction({ id: entry.id, ...entry.data() }))
+        .filter(Boolean)
+        .sort(compareTransactions);
+
+      state.syncMode = "cloud";
+      renderCategoryOptions();
+      render();
+      renderAuthPanel();
+    },
+    (error) => {
+      console.error(error);
+      state.syncMode = "error";
+      state.syncError = stringifyError(error);
+      renderAuthPanel();
+      showToast("雲端同步失敗");
+    }
+  );
+}
+
+async function handleGoogleSignIn() {
+  if (!state.firebaseReady || !state.firebase) {
+    showToast("請先把 firebase-config.js 換成你的 Firebase 設定");
+    return;
+  }
+
+  try {
+    state.syncMode = "signing-in";
+    renderAuthPanel();
+
+    if (shouldUseRedirectSignIn()) {
+      await signInWithRedirect(state.firebase.auth, state.firebase.provider);
+      return;
+    }
+
+    await signInWithPopup(state.firebase.auth, state.firebase.provider);
+  } catch (error) {
+    console.error(error);
+    state.syncMode = state.user ? "cloud" : "signed-out";
+    renderAuthPanel();
+    showToast("登入失敗，請確認 Firebase Console 已啟用 Google 登入與授權網域");
+  }
+}
+
+async function handleSignOut() {
+  if (!state.firebase?.auth) {
+    return;
+  }
+
+  try {
+    await signOut(state.firebase.auth);
+    showToast("已登出 Google 帳號");
+  } catch (error) {
+    console.error(error);
+    showToast("登出失敗");
+  }
+}
+
+async function handleSubmit(event) {
   event.preventDefault();
 
   const formData = new FormData(elements.transactionForm);
@@ -150,6 +312,7 @@ function handleSubmit(event) {
   const date = elements.dateInput.value;
   const note = elements.noteInput.value.trim();
   const existingId = elements.transactionId.value;
+  const existing = state.transactions.find((item) => item.id === existingId);
 
   if (!amount || amount <= 0) {
     showToast("請輸入正確金額");
@@ -171,52 +334,87 @@ function handleSubmit(event) {
 
   const payload = {
     id: existingId || createId(),
-    type,
+    type: type === "income" ? "income" : "expense",
     amount,
     category,
     date,
     note,
+    createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
-  const existingIndex = state.transactions.findIndex((item) => item.id === payload.id);
+  elements.saveButton.disabled = true;
 
-  if (existingIndex >= 0) {
-    state.transactions[existingIndex] = {
-      ...state.transactions[existingIndex],
-      ...payload,
-    };
-    showToast("紀錄已更新");
-  } else {
-    state.transactions.unshift({
-      ...payload,
-      createdAt: new Date().toISOString(),
-    });
-    showToast("已新增記錄");
+  try {
+    await saveTransaction(payload);
+    renderCategoryOptions();
+    render();
+    resetForm();
+    showToast(existing ? "紀錄已更新" : "已新增記錄");
+  } catch (error) {
+    console.error(error);
+    showToast(state.user ? "雲端儲存失敗" : "本機儲存失敗");
+  } finally {
+    elements.saveButton.disabled = false;
+  }
+}
+
+async function saveTransaction(transaction) {
+  const normalized = normalizeTransaction(transaction);
+  if (!normalized) {
+    throw new Error("invalid-transaction");
   }
 
-  saveTransactions();
-  renderCategoryOptions();
-  render();
-  resetForm();
+  if (isCloudMode()) {
+    await saveTransactionToCloud(normalized);
+    return;
+  }
+
+  saveTransactionToLocal(normalized);
+}
+
+function saveTransactionToLocal(transaction) {
+  const nextTransactions = [...state.localTransactions];
+  const existingIndex = nextTransactions.findIndex((item) => item.id === transaction.id);
+
+  if (existingIndex >= 0) {
+    nextTransactions[existingIndex] = transaction;
+  } else {
+    nextTransactions.unshift(transaction);
+  }
+
+  nextTransactions.sort(compareTransactions);
+  state.localTransactions = nextTransactions;
+  state.transactions = [...nextTransactions];
+  saveLocalTransactions();
+}
+
+async function saveTransactionToCloud(transaction) {
+  if (!state.firebase?.db || !state.user?.uid) {
+    throw new Error("cloud-not-ready");
+  }
+
+  const transactionRef = doc(state.firebase.db, "users", state.user.uid, "transactions", transaction.id);
+  await setDoc(transactionRef, transaction);
 }
 
 function render() {
   renderSummary();
   renderTransactions();
+  renderAuthPanel();
+  renderBackupNote();
 }
 
 function renderSummary() {
-  const summaryMonth = state.summaryMonth;
-  const items = filterByMonth(state.transactions, summaryMonth);
+  const items = filterByMonth(state.transactions, state.summaryMonth);
   const income = sumAmounts(items.filter((item) => item.type === "income"));
   const expense = sumAmounts(items.filter((item) => item.type === "expense"));
   const balance = income - expense;
   const expenseByCategory = groupExpenseByCategory(items);
   const topCategory = expenseByCategory[0];
 
-  elements.summaryTitle.textContent = summaryMonth
-    ? formatMonthLabel(summaryMonth)
+  elements.summaryTitle.textContent = state.summaryMonth
+    ? formatMonthLabel(state.summaryMonth)
     : "全部月份";
   elements.balanceValue.textContent = formatCurrency(balance);
   elements.incomeValue.textContent = formatCurrency(income);
@@ -245,7 +443,6 @@ function renderTransactions() {
 
   for (const item of items) {
     const node = elements.transactionItemTemplate.content.cloneNode(true);
-    const container = node.querySelector(".transaction-item");
     const category = node.querySelector(".transaction-category");
     const note = node.querySelector(".transaction-note");
     const amount = node.querySelector(".transaction-amount");
@@ -263,9 +460,8 @@ function renderTransactions() {
     badge.classList.add(item.type);
 
     editButton.addEventListener("click", () => startEdit(item.id));
-    deleteButton.addEventListener("click", () => deleteTransaction(item.id));
+    deleteButton.addEventListener("click", () => void deleteTransaction(item.id));
 
-    container.dataset.id = item.id;
     fragment.appendChild(node);
   }
 
@@ -299,20 +495,18 @@ function renderCategoryChart(expenseByCategory, totalExpense) {
   elements.categoryChart.className = "chart-list";
   elements.categoryChart.innerHTML = "";
 
-  const topFive = expenseByCategory.slice(0, 5);
-
-  for (const item of topFive) {
+  for (const item of expenseByCategory.slice(0, 5)) {
     const row = document.createElement("article");
     row.className = "chart-row";
 
-    const ratio = Math.max(6, Math.round((item.total / totalExpense) * 100));
+    const percent = Math.round((item.total / totalExpense) * 100);
     row.innerHTML = `
       <header>
         <strong>${escapeHtml(item.category)}</strong>
-        <span>${formatCurrency(item.total)} (${Math.round((item.total / totalExpense) * 100)}%)</span>
+        <span>${formatCurrency(item.total)} (${percent}%)</span>
       </header>
       <div class="chart-track">
-        <div class="chart-fill" style="width: ${ratio}%"></div>
+        <div class="chart-fill" style="width: ${Math.max(6, percent)}%"></div>
       </div>
     `;
 
@@ -320,8 +514,119 @@ function renderCategoryChart(expenseByCategory, totalExpense) {
   }
 }
 
+function renderAuthPanel() {
+  const meta = getSyncModeMeta();
+
+  elements.syncModeBadge.textContent = meta.badge;
+  elements.syncModeBadge.className = `mode-badge ${meta.variant}`;
+  elements.accountStatus.textContent = meta.status;
+  elements.accountDetail.textContent = meta.detail;
+  elements.accountHint.textContent = meta.hint;
+  elements.signInButton.hidden = meta.hideSignIn;
+  elements.signOutButton.hidden = meta.hideSignOut;
+  elements.migrateButton.hidden = meta.hideMigrate;
+
+  if (!meta.hideMigrate) {
+    elements.migrateButton.textContent = `把本機 ${state.localTransactions.length} 筆資料同步到雲端`;
+  }
+}
+
+function renderBackupNote() {
+  if (isCloudMode()) {
+    elements.backupNote.textContent = "目前已登入 Google，資料會同步到你自己的 Firestore。仍建議偶爾匯出 JSON 做額外備份。";
+    return;
+  }
+
+  elements.backupNote.textContent = "目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。";
+}
+
+function getSyncModeMeta() {
+  const email = state.user?.email || "你的 Google 帳號";
+  const hasLocalBackup = state.localTransactions.length > 0;
+
+  switch (state.syncMode) {
+    case "config-missing":
+      return {
+        badge: "待設定 Firebase",
+        variant: "warning",
+        status: "目前仍可用本機模式，但還沒有接上 Google 登入與 Firestore。",
+        detail: "請先編輯 firebase-config.js，並在 Firebase Console 啟用 Google 登入與 Firestore。",
+        hint: "Firebase 設定物件本身可公開，真正保護資料的是 Authentication 與 Firestore Security Rules。",
+        hideSignIn: false,
+        hideSignOut: true,
+        hideMigrate: true,
+      };
+    case "signing-in":
+      return {
+        badge: "登入中",
+        variant: "warning",
+        status: "正在導向 Google 登入流程。",
+        detail: "手機通常會使用重新導向登入，完成後會自動回到這個頁面。",
+        hint: "如果登入失敗，請檢查 Firebase Authentication 的 Google provider 與授權網域。",
+        hideSignIn: false,
+        hideSignOut: true,
+        hideMigrate: true,
+      };
+    case "syncing":
+      return {
+        badge: "同步中",
+        variant: "warning",
+        status: `已登入 ${email}，正在讀取 Firestore 資料。`,
+        detail: "初次登入時如果雲端還沒有資料，畫面可能會先是空的。",
+        hint: hasLocalBackup ? "如果你這台裝置已有舊資料，可按下面按鈕把本機資料合併到雲端。" : "資料會以你的 Firebase 帳號隔離保存。",
+        hideSignIn: true,
+        hideSignOut: false,
+        hideMigrate: !hasLocalBackup,
+      };
+    case "cloud":
+      return {
+        badge: "雲端模式",
+        variant: "cloud",
+        status: `目前已登入 ${email}，資料會同步到你的 Firestore。`,
+        detail: hasLocalBackup ? "本機舊資料仍保留在這台裝置，如果還沒匯入雲端，可以再按一次同步。" : "你之後換手機，只要用同一個 Google 帳號登入，就能看到同一份資料。",
+        hint: "這個公開網址本身不會公開你的記帳內容；只有通過 Firebase Auth 並符合 Firestore 規則的人才能讀到資料。",
+        hideSignIn: true,
+        hideSignOut: false,
+        hideMigrate: !hasLocalBackup,
+      };
+    case "error":
+      return {
+        badge: "同步失敗",
+        variant: "error",
+        status: "Firebase 已初始化，但目前無法完成同步。",
+        detail: state.syncError || "請檢查 Firebase config、Google provider、Firestore 是否已建立，以及授權網域設定。",
+        hint: "你仍可先使用本機模式，等設定完成後再登入同步。",
+        hideSignIn: false,
+        hideSignOut: !state.user,
+        hideMigrate: true,
+      };
+    case "signed-out":
+      return {
+        badge: "本機模式",
+        variant: "local",
+        status: "目前尚未登入，資料只會存在這台裝置的瀏覽器裡。",
+        detail: "登入 Google 後會切換到 Firestore 雲端模式，讓你換手機也能看到同一份帳本。",
+        hint: hasLocalBackup ? "這台裝置已有本機資料；登入後可以把它們同步到雲端。" : "若你只想單機使用，也可以不登入，繼續用本機模式。",
+        hideSignIn: false,
+        hideSignOut: true,
+        hideMigrate: true,
+      };
+    default:
+      return {
+        badge: "本機模式",
+        variant: "local",
+        status: "目前尚未登入，資料只會存在這台裝置的瀏覽器裡。",
+        detail: "登入 Google 後會切換到 Firestore 雲端模式。",
+        hint: "若你只想單機使用，也可以不登入。",
+        hideSignIn: false,
+        hideSignOut: true,
+        hideMigrate: true,
+      };
+  }
+}
+
 function getFilteredTransactions() {
-  let items = [...state.transactions].sort((left, right) => right.date.localeCompare(left.date));
+  let items = [...state.transactions].sort(compareTransactions);
 
   items = filterByMonth(items, state.filters.month);
 
@@ -341,7 +646,6 @@ function getFilteredTransactions() {
 
 function startEdit(id) {
   const item = state.transactions.find((entry) => entry.id === id);
-
   if (!item) {
     return;
   }
@@ -371,33 +675,46 @@ function resetForm() {
   elements.cancelEditButton.hidden = true;
 }
 
-function deleteTransaction(id) {
+async function deleteTransaction(id) {
   const item = state.transactions.find((entry) => entry.id === id);
-
   if (!item) {
     return;
   }
 
-  const confirmed = window.confirm(`確定刪除這筆${item.category}紀錄嗎？`);
+  const confirmed = window.confirm(`確定刪除這筆「${item.category}」紀錄嗎？`);
   if (!confirmed) {
     return;
   }
 
-  state.transactions = state.transactions.filter((entry) => entry.id !== id);
-  saveTransactions();
-  renderCategoryOptions();
-  render();
+  try {
+    if (isCloudMode()) {
+      if (!state.firebase?.db || !state.user?.uid) {
+        throw new Error("cloud-not-ready");
+      }
+      await deleteDoc(doc(state.firebase.db, "users", state.user.uid, "transactions", id));
+    } else {
+      state.localTransactions = state.localTransactions.filter((entry) => entry.id !== id);
+      state.transactions = [...state.localTransactions];
+      saveLocalTransactions();
+      renderCategoryOptions();
+      render();
+    }
 
-  if (elements.transactionId.value === id) {
-    resetForm();
+    if (elements.transactionId.value === id) {
+      resetForm();
+    }
+
+    showToast("紀錄已刪除");
+  } catch (error) {
+    console.error(error);
+    showToast(isCloudMode() ? "刪除雲端資料失敗" : "刪除本機資料失敗");
   }
-
-  showToast("紀錄已刪除");
 }
 
 function exportJson() {
   const payload = {
     exportedAt: new Date().toISOString(),
+    mode: isCloudMode() ? "cloud" : "local",
     transactions: state.transactions,
   };
 
@@ -433,7 +750,6 @@ function exportCsv() {
 
 async function importJson(event) {
   const [file] = event.target.files || [];
-
   if (!file) {
     return;
   }
@@ -450,19 +766,66 @@ async function importJson(event) {
     const normalized = transactions
       .map(normalizeTransaction)
       .filter(Boolean)
-      .sort((left, right) => right.date.localeCompare(left.date));
+      .sort(compareTransactions);
 
-    state.transactions = normalized;
-    saveTransactions();
-    renderCategoryOptions();
-    render();
-    resetForm();
-    showToast("匯入完成");
+    if (isCloudMode()) {
+      await importTransactionsToCloud(normalized);
+      showToast("已匯入到 Firestore");
+    } else {
+      state.localTransactions = normalized;
+      state.transactions = [...normalized];
+      saveLocalTransactions();
+      renderCategoryOptions();
+      render();
+      resetForm();
+      showToast("已匯入到本機");
+    }
   } catch (error) {
     console.error(error);
     showToast("匯入失敗，請確認 JSON 格式");
   } finally {
     event.target.value = "";
+  }
+}
+
+async function importTransactionsToCloud(transactions) {
+  if (!state.firebase?.db || !state.user?.uid) {
+    throw new Error("cloud-not-ready");
+  }
+
+  const batch = writeBatch(state.firebase.db);
+
+  for (const transaction of transactions) {
+    const transactionRef = doc(
+      state.firebase.db,
+      "users",
+      state.user.uid,
+      "transactions",
+      transaction.id
+    );
+    batch.set(transactionRef, transaction);
+  }
+
+  await batch.commit();
+}
+
+async function migrateLocalToCloud() {
+  if (!state.localTransactions.length) {
+    showToast("這台裝置目前沒有本機資料");
+    return;
+  }
+
+  if (!isCloudMode()) {
+    showToast("請先登入 Google 再同步到 Firestore");
+    return;
+  }
+
+  try {
+    await importTransactionsToCloud(state.localTransactions);
+    showToast("本機資料已同步到雲端");
+  } catch (error) {
+    console.error(error);
+    showToast("同步本機資料到雲端失敗");
   }
 }
 
@@ -472,19 +835,23 @@ function normalizeTransaction(item) {
   }
 
   const amount = Number(item.amount);
-  if (!item.type || !item.category || !item.date || !amount) {
+  const type = item.type === "income" ? "income" : "expense";
+  const category = String(item.category || "").trim();
+  const date = String(item.date || "").slice(0, 10);
+
+  if (!amount || amount <= 0 || !category || !date) {
     return null;
   }
 
   return {
-    id: item.id || createId(),
-    type: item.type === "income" ? "income" : "expense",
+    id: String(item.id || createId()),
+    type,
     amount,
-    category: String(item.category).trim(),
-    date: String(item.date).slice(0, 10),
+    category,
+    date,
     note: String(item.note || "").trim(),
-    createdAt: item.createdAt || new Date().toISOString(),
-    updatedAt: item.updatedAt || new Date().toISOString(),
+    createdAt: String(item.createdAt || new Date().toISOString()),
+    updatedAt: String(item.updatedAt || new Date().toISOString()),
   };
 }
 
@@ -516,7 +883,7 @@ function sumAmounts(items) {
   return items.reduce((sum, item) => sum + item.amount, 0);
 }
 
-function loadTransactions() {
+function loadLocalTransactions() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     return Array.isArray(parsed) ? parsed.map(normalizeTransaction).filter(Boolean) : [];
@@ -526,8 +893,8 @@ function loadTransactions() {
   }
 }
 
-function saveTransactions() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+function saveLocalTransactions() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.localTransactions));
 }
 
 function hydrateSettings() {
@@ -597,7 +964,32 @@ function showToast(message) {
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => {
     elements.toast.hidden = true;
-  }, 2200);
+  }, 2400);
+}
+
+function isCloudMode() {
+  return state.syncMode === "cloud" || state.syncMode === "syncing";
+}
+
+function isFirebaseConfigured(config) {
+  const requiredKeys = ["apiKey", "authDomain", "projectId", "appId"];
+  return requiredKeys.every((key) => {
+    const value = String(config?.[key] || "").trim();
+    return value && !value.startsWith("YOUR_");
+  });
+}
+
+function shouldUseRedirectSignIn() {
+  return window.matchMedia("(max-width: 720px)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+
+function compareTransactions(left, right) {
+  const dateCompare = right.date.localeCompare(left.date);
+  if (dateCompare !== 0) {
+    return dateCompare;
+  }
+
+  return right.updatedAt.localeCompare(left.updatedAt);
 }
 
 function formatCurrency(value) {
@@ -655,4 +1047,20 @@ function createId() {
   }
 
   return `txn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function stringifyError(error) {
+  if (!error) {
+    return "";
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error.code) {
+    return `${error.code}: ${error.message || ""}`.trim();
+  }
+
+  return error.message || String(error);
 }
