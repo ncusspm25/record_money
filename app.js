@@ -7,7 +7,6 @@ import {
   onAuthStateChanged,
   setPersistence,
   signInWithPopup,
-  signInWithRedirect,
   signOut,
 } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
 import {
@@ -281,11 +280,6 @@ async function handleGoogleSignIn() {
   try {
     state.syncMode = "signing-in";
     renderAuthPanel();
-
-    if (shouldUseRedirectSignIn()) {
-      await signInWithRedirect(state.firebase.auth, state.firebase.provider);
-      return;
-    }
 
     await signInWithPopup(state.firebase.auth, state.firebase.provider);
   } catch (error) {
@@ -568,9 +562,9 @@ function getSyncModeMeta() {
       return {
         badge: "登入中",
         variant: "warning",
-        status: "正在導向 Google 登入流程。",
-        detail: "手機通常會使用重新導向登入，完成後會自動回到這個頁面。",
-        hint: "如果登入失敗，請檢查 Firebase Authentication 的 Google provider 與授權網域。",
+        status: "正在開啟 Google 登入視窗。",
+        detail: "如果你的瀏覽器擋住彈出視窗，請允許後再重試。",
+        hint: "如果登入失敗，請檢查 Firebase Authentication 的 Google provider、授權網域，或瀏覽器是否阻擋彈出視窗。",
         hideSignIn: false,
         hideSignOut: true,
         hideMigrate: true,
@@ -985,10 +979,6 @@ function isFirebaseConfigured(config) {
     const value = String(config?.[key] || "").trim();
     return value && !value.startsWith("YOUR_");
   });
-}
-
-function shouldUseRedirectSignIn() {
-  return window.matchMedia("(max-width: 720px)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 }
 
 function compareTransactions(left, right) {
