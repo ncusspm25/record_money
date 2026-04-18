@@ -1,9 +1,9 @@
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID",
+  apiKey: "AIzaSyA9S3S0nA_9OEntZhqsNif0TC8jXWZdG8",
+  authDomain: "record-money-3314f.firebaseapp.com",
+  projectId: "record-money-3314f",
+  storageBucket: "record-money-3314f.firebasestorage.app",
+  messagingSenderId: "877435170005",
+  appId: "1:877435170005:web:6c86136fe93995ef25065c",
+  measurementId: "G-CSWQNZ6BTQ",
 };
