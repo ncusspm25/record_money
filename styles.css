@@ -75,24 +75,10 @@ button {
   padding: 8px 4px 28px;
 }
 
-.pet-stickers {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.pet-sticker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  background: rgba(255, 250, 242, 0.78);
-  border: 1px solid rgba(80, 55, 35, 0.08);
-  box-shadow: var(--shadow-sm);
-  font-size: 1.5rem;
+.hero-mark {
+  flex: 0 0 auto;
+  align-self: center;
+  opacity: 0.88;
 }
 
 .eyebrow {
@@ -192,19 +178,6 @@ button {
   font-size: 0.96rem;
 }
 
-.form-pets {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 18px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 249, 240, 0.86);
-  border: 1px solid rgba(80, 55, 35, 0.08);
-  color: var(--muted);
-  font-size: 0.88rem;
-}
 
 /* ── Form Labels ── */
 .month-picker,
@@ -654,6 +627,35 @@ textarea:focus {
   border-color: rgba(40, 121, 94, 0.30);
   color: var(--income);
   box-shadow: 0 2px 8px rgba(40, 121, 94, 0.12);
+}
+
+/* Need/Want field wrapper */
+.need-want-field {
+  display: grid;
+  gap: 7px;
+}
+
+.field-label {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Need selected — calm teal */
+.need-want-toggle label:has(input[value="need"]) input:checked + span {
+  background: var(--income-light);
+  border-color: rgba(40, 121, 94, 0.28);
+  color: var(--income);
+  box-shadow: 0 2px 8px rgba(40, 121, 94, 0.10);
+}
+
+/* Want selected — warm amber */
+.need-want-toggle label:has(input[value="want"]) input:checked + span {
+  background: rgba(184, 118, 26, 0.12);
+  border-color: rgba(184, 118, 26, 0.30);
+  color: var(--warning);
+  box-shadow: 0 2px 8px rgba(184, 118, 26, 0.10);
 }
 
 /* ── Entry Form ── */

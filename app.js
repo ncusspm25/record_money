@@ -57,7 +57,6 @@ const elements = {
   customCategoryField: document.querySelector("#customCategoryField"),
   customCategoryInput: document.querySelector("#customCategoryInput"),
   needWantField: document.querySelector("#needWantField"),
-  needWantSelect: document.querySelector("#needWantSelect"),
   dateInput: document.querySelector("#dateInput"),
   noteInput: document.querySelector("#noteInput"),
   summaryMonth: document.querySelector("#summaryMonth"),
@@ -327,7 +326,7 @@ async function handleSubmit(event) {
   const category = getSelectedCategory();
   const date = elements.dateInput.value;
   const note = elements.noteInput.value.trim();
-  const needWant = type === "expense" ? elements.needWantSelect.value : "";
+  const needWant = type === "expense" ? (elements.needWantField.querySelector('input[name="needWant"]:checked')?.value || "need") : "";
   const existingId = elements.transactionId.value;
   const existing = state.transactions.find((item) => item.id === existingId);
 
@@ -703,7 +702,9 @@ function startEdit(id) {
     elements.customCategoryInput.value = item.category;
   }
 
-  elements.needWantSelect.value = item.needWant === "want" ? "want" : "need";
+  const needVal = item.needWant === "want" ? "want" : "need";
+  const needRadio = elements.needWantField.querySelector(`input[name="needWant"][value="${needVal}"]`);
+  if (needRadio) needRadio.checked = true;
   updateCategoryVisibility();
   updateNeedWantVisibility();
 
@@ -717,7 +718,8 @@ function resetForm() {
   elements.dateInput.value = formatDateInput(new Date());
   elements.formTitle.textContent = "快速記一筆";
   elements.cancelEditButton.hidden = true;
-  elements.needWantSelect.value = "need";
+  const needDefault = elements.needWantField.querySelector('input[name="needWant"][value="need"]');
+  if (needDefault) needDefault.checked = true;
   renderCategoryOptions();
   updateCategoryVisibility();
   updateNeedWantVisibility();
@@ -1113,7 +1115,8 @@ function updateNeedWantVisibility() {
   const isExpense = getCurrentType() === "expense";
   elements.needWantField.hidden = !isExpense;
   if (!isExpense) {
-    elements.needWantSelect.value = "need";
+    const r = elements.needWantField.querySelector('input[name="needWant"][value="need"]');
+    if (r) r.checked = true;
   }
 }
 

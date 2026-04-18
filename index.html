@@ -25,11 +25,15 @@
         <h1>口袋記帳</h1>
         <p class="hero-copy">打開就能快速記一筆。雲端同步、月花費統計、備份功能都留著，但不再擋住你最常做的事。</p>
       </div>
-      <div class="pet-stickers" aria-hidden="true">
-        <span class="pet-sticker">🐶</span>
-        <span class="pet-sticker">🐕</span>
-        <span class="pet-sticker">🐱</span>
-      </div>
+      <svg class="hero-mark" width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="44" cy="44" r="40" stroke="rgba(201,104,48,0.16)" stroke-width="1.5"/>
+        <circle cx="44" cy="44" r="28" stroke="rgba(201,104,48,0.09)" stroke-width="1" stroke-dasharray="4 3.5"/>
+        <rect x="24" y="54" width="9" height="13" rx="3" fill="rgba(201,104,48,0.20)"/>
+        <rect x="39" y="43" width="9" height="24" rx="3" fill="rgba(201,104,48,0.32)"/>
+        <rect x="54" y="32" width="9" height="35" rx="3" fill="rgba(201,104,48,0.46)"/>
+        <polyline points="28.5,54 43.5,43 58.5,32" stroke="rgba(138,56,18,0.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="18" y1="67" x2="70" y2="67" stroke="rgba(201,104,48,0.18)" stroke-width="1" stroke-linecap="round"/>
+      </svg>
       <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
     </header>
 
@@ -43,11 +47,6 @@
         </div>
 
         <p class="form-intro">先記下來最重要。其他統計、同步、備份都放在下面慢慢看。</p>
-        <div class="form-pets" aria-hidden="true">
-          <span>小柴犬陪你記帳</span>
-          <span>⋆</span>
-          <span>小貓幫你盯預算</span>
-        </div>
 
         <form id="transactionForm" class="entry-form">
           <input id="transactionId" type="hidden">
@@ -79,13 +78,19 @@
             <input id="customCategoryInput" type="text" placeholder="例如 寵物零食">
           </label>
 
-          <label id="needWantField">
-            <span>這筆屬於</span>
-            <select id="needWantSelect">
-              <option value="need">需要</option>
-              <option value="want">想要</option>
-            </select>
-          </label>
+          <div id="needWantField" class="need-want-field">
+            <span class="field-label">這筆屬於</span>
+            <div class="type-toggle need-want-toggle" role="radiogroup" aria-label="需要或想要">
+              <label>
+                <input type="radio" name="needWant" value="need" checked>
+                <span>需要</span>
+              </label>
+              <label>
+                <input type="radio" name="needWant" value="want">
+                <span>想要</span>
+              </label>
+            </div>
+          </div>
 
           <label>
             <span>日期</span>
