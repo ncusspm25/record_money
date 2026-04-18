@@ -11,6 +11,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <title>口袋記帳</title>
 </head>
@@ -51,9 +54,9 @@
             </label>
           </div>
 
-          <label>
+          <label class="amount-label">
             <span>金額</span>
-            <input id="amountInput" type="number" inputmode="decimal" min="0" step="1" placeholder="例如 120">
+            <input id="amountInput" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
           </label>
 
           <label>
