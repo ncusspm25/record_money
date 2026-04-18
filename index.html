@@ -147,6 +147,11 @@
           </article>
         </div>
 
+        <div class="pie-chart-row" id="pieChartRow" hidden>
+          <div id="pieChartContainer" class="pie-chart-wrap"></div>
+          <ul id="pieChartLegend" class="pie-legend"></ul>
+        </div>
+
         <details class="details-panel">
           <summary>查看本月分類與花費分布</summary>
           <div class="details-body">
@@ -241,6 +246,43 @@
         <p id="backupNote" class="backup-note">目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。</p>
       </section>
     </main>
+  </div>
+
+  <div id="celebrationOverlay" class="celebration-overlay" hidden>
+    <div class="celebration-card">
+      <svg class="chiikawa-svg" viewBox="0 0 100 115" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Ears (behind head) -->
+        <circle cx="32" cy="22" r="12" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
+        <circle cx="68" cy="22" r="12" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
+        <circle cx="32" cy="23" r="7.5" fill="#f5c8bf" opacity="0.55"/>
+        <circle cx="68" cy="23" r="7.5" fill="#f5c8bf" opacity="0.55"/>
+        <!-- Body -->
+        <ellipse cx="50" cy="94" rx="22" ry="17" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
+        <!-- Head -->
+        <circle cx="50" cy="53" r="34" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
+        <!-- Eyes -->
+        <circle cx="39" cy="50" r="5.5" fill="#1e140c"/>
+        <circle cx="61" cy="50" r="5.5" fill="#1e140c"/>
+        <circle cx="41" cy="47.5" r="2" fill="white"/>
+        <circle cx="63" cy="47.5" r="2" fill="white"/>
+        <!-- Nose -->
+        <ellipse cx="50" cy="59" rx="2.5" ry="2" fill="#deaaa0" opacity="0.72"/>
+        <!-- Mouth -->
+        <path d="M 43 65 Q 50 72 57 65" stroke="#1e140c" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        <!-- Blush -->
+        <ellipse cx="30" cy="59" rx="8.5" ry="5" fill="#f5a0a0" opacity="0.26"/>
+        <ellipse cx="70" cy="59" rx="8.5" ry="5" fill="#f5a0a0" opacity="0.26"/>
+        <!-- Arms -->
+        <path d="M 29 90 Q 17 98 21 108" stroke="#c9b49a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 71 90 Q 83 98 79 108" stroke="#c9b49a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <!-- Sparkles -->
+        <path d="M 10 33 L 12 27 L 14 33 L 8 30 L 16 30 Z" fill="#c96830" opacity="0.5"/>
+        <path d="M 88 28 L 90 22 L 92 28 L 86 25 L 94 25 Z" fill="#c96830" opacity="0.45"/>
+        <circle cx="16" cy="68" r="2" fill="#c96830" opacity="0.38"/>
+        <circle cx="84" cy="72" r="1.5" fill="#c96830" opacity="0.32"/>
+      </svg>
+      <p class="celebration-label">記帳成功！</p>
+    </div>
   </div>
 
   <div id="toast" class="toast" hidden></div>

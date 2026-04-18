@@ -130,6 +130,10 @@ function attachEventListeners() {
     });
   }
 
+  for (const radio of elements.needWantField.querySelectorAll('input[name="needWant"]')) {
+    radio.addEventListener("change", () => updateNeedWantToggle());
+  }
+
   elements.summaryMonth.addEventListener("input", (event) => {
     state.summaryMonth = event.target.value;
     persistSettings();
@@ -372,6 +376,7 @@ async function handleSubmit(event) {
     render();
     resetForm();
     showToast(existing ? "紀錄已更新" : "已新增記錄");
+    if (!existing) showCelebration();
   } catch (error) {
     console.error(error);
     showToast(state.user ? "雲端儲存失敗" : "本機儲存失敗");
@@ -446,6 +451,7 @@ function renderSummary() {
   elements.transactionCountValue.textContent = `${items.length} 筆`;
 
   renderCategoryChart(expenseByCategory, expense);
+  renderPieChart(expenseByCategory, expense);
 }
 
 function renderTransactions() {
@@ -542,6 +548,87 @@ function renderCategoryChart(expenseByCategory, totalExpense) {
     `;
 
     elements.categoryChart.appendChild(row);
+  }
+}
+
+function renderPieChart(expenseByCategory, totalExpense) {
+  const container = document.querySelector("#pieChartContainer");
+  const legend = document.querySelector("#pieChartLegend");
+  const row = document.querySelector("#pieChartRow");
+  if (!container || !legend || !row) return;
+
+  if (!expenseByCategory.length || totalExpense <= 0) {
+    row.hidden = true;
+    return;
+  }
+
+  row.hidden = false;
+  container.innerHTML = "";
+  legend.innerHTML = "";
+
+  const SIZE = 160;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const R = 62;
+  const INNER = 38;
+  const COLORS = ["#c96830", "#e8914a", "#8a3812", "#d4a060", "#a87040"];
+  const ns = "http://www.w3.org/2000/svg";
+
+  const slices = expenseByCategory.slice(0, 5);
+  let startAngle = -Math.PI / 2;
+
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${SIZE} ${SIZE}`);
+  svg.setAttribute("class", "pie-chart-svg");
+
+  for (let i = 0; i < slices.length; i++) {
+    const pct = slices[i].total / totalExpense;
+    const end = startAngle + pct * 2 * Math.PI;
+    const large = end - startAngle > Math.PI ? 1 : 0;
+
+    const x1 = CX + R * Math.cos(startAngle);
+    const y1 = CY + R * Math.sin(startAngle);
+    const x2 = CX + R * Math.cos(end);
+    const y2 = CY + R * Math.sin(end);
+    const xi1 = CX + INNER * Math.cos(end);
+    const yi1 = CY + INNER * Math.sin(end);
+    const xi2 = CX + INNER * Math.cos(startAngle);
+    const yi2 = CY + INNER * Math.sin(startAngle);
+
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${xi1.toFixed(2)} ${yi1.toFixed(2)} A ${INNER} ${INNER} 0 ${large} 0 ${xi2.toFixed(2)} ${yi2.toFixed(2)} Z`);
+    path.setAttribute("fill", COLORS[i % COLORS.length]);
+    path.setAttribute("stroke", "rgba(255,253,249,1)");
+    path.setAttribute("stroke-width", "2");
+    svg.appendChild(path);
+
+    const li = document.createElement("li");
+    li.className = "pie-legend-item";
+    li.innerHTML = `<span class="pie-legend-dot" style="background:${COLORS[i % COLORS.length]}"></span><span class="pie-legend-name">${escapeHtml(slices[i].category)}</span><span class="pie-legend-pct">${Math.round(pct * 100)}%</span>`;
+    legend.appendChild(li);
+
+    startAngle = end;
+  }
+
+  container.appendChild(svg);
+}
+
+function showCelebration() {
+  const overlay = document.querySelector("#celebrationOverlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  const card = overlay.querySelector(".celebration-card");
+  card.style.animation = "none";
+  void card.offsetHeight;
+  card.style.animation = "";
+  setTimeout(() => { overlay.hidden = true; }, 2700);
+}
+
+function updateNeedWantToggle() {
+  for (const label of elements.needWantField.querySelectorAll("label")) {
+    const radio = label.querySelector("input");
+    label.classList.toggle("is-need", radio?.value === "need" && !!radio?.checked);
+    label.classList.toggle("is-want", radio?.value === "want" && !!radio?.checked);
   }
 }
 
@@ -1118,6 +1205,7 @@ function updateNeedWantVisibility() {
     const r = elements.needWantField.querySelector('input[name="needWant"][value="need"]');
     if (r) r.checked = true;
   }
+  updateNeedWantToggle();
 }
 
 function createId() {
