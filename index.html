@@ -20,94 +20,22 @@
       <div>
         <p class="eyebrow">Pocket Ledger</p>
         <h1>口袋記帳</h1>
-        <p class="hero-copy">支援手機、主畫面安裝、Google 登入與 Firestore 雲端同步。沒設定 Firebase 時，也能先用本機模式記帳。</p>
+        <p class="hero-copy">打開就能快速記一筆。雲端同步、月花費統計、備份功能都留著，但不再擋住你最常做的事。</p>
       </div>
       <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
     </header>
 
     <main class="layout">
-      <section class="panel account-panel">
+      <section class="panel form-panel spotlight-panel">
         <div class="section-heading compact">
           <div>
-            <p class="eyebrow">同步模式</p>
-            <h2>登入與資料位置</h2>
-          </div>
-          <span id="syncModeBadge" class="mode-badge local">本機模式</span>
-        </div>
-
-        <div class="account-card">
-          <div class="account-copy">
-            <p id="accountStatus" class="account-status">目前尚未登入，資料只會存在這台裝置的瀏覽器裡。</p>
-            <p id="accountDetail" class="account-detail">設定 Firebase 後，登入 Google 帳號就能把資料同步到你自己的 Firestore。</p>
-          </div>
-
-          <div class="account-actions">
-            <button id="signInButton" class="primary-button" type="button">Google 登入</button>
-            <button id="signOutButton" class="ghost-button" type="button" hidden>登出</button>
-            <button id="migrateButton" class="secondary-button" type="button" hidden>把本機資料同步到雲端</button>
-          </div>
-        </div>
-
-        <p id="accountHint" class="account-hint">公開網址公開的是程式，不是你的資料。真正的資料是否私密，取決於 Firebase Authentication 與 Firestore 規則。</p>
-      </section>
-
-      <section class="panel summary-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">本月概況</p>
-            <h2 id="summaryTitle">2026 年 4 月</h2>
-          </div>
-          <label class="month-picker">
-            <span>月份</span>
-            <input id="summaryMonth" type="month">
-          </label>
-        </div>
-
-        <div class="stats-grid">
-          <article class="stat-card">
-            <span>結餘</span>
-            <strong id="balanceValue">$0</strong>
-          </article>
-          <article class="stat-card income">
-            <span>收入</span>
-            <strong id="incomeValue">$0</strong>
-          </article>
-          <article class="stat-card expense">
-            <span>支出</span>
-            <strong id="expenseValue">$0</strong>
-          </article>
-        </div>
-
-        <div class="insight-grid">
-          <article class="mini-card">
-            <span>最大支出分類</span>
-            <strong id="topCategoryValue">暫無資料</strong>
-          </article>
-          <article class="mini-card">
-            <span>記錄筆數</span>
-            <strong id="transactionCountValue">0 筆</strong>
-          </article>
-        </div>
-
-        <section class="chart-card">
-          <div class="chart-header">
-            <h3>支出分類</h3>
-            <span id="chartHint">本月支出分布</span>
-          </div>
-          <div id="categoryChart" class="chart-list empty-state-inline">
-            本月還沒有支出紀錄
-          </div>
-        </section>
-      </section>
-
-      <section class="panel form-panel">
-        <div class="section-heading compact">
-          <div>
-            <p class="eyebrow">新增收支</p>
+            <p class="eyebrow">立即記帳</p>
             <h2 id="formTitle">快速記一筆</h2>
           </div>
           <button id="cancelEditButton" class="ghost-button" hidden>取消編輯</button>
         </div>
+
+        <p class="form-intro">先記下來最重要。其他統計、同步、備份都放在下面慢慢看。</p>
 
         <form id="transactionForm" class="entry-form">
           <input id="transactionId" type="hidden">
@@ -148,10 +76,64 @@
         </form>
       </section>
 
+      <section class="panel summary-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">本月概況</p>
+            <h2 id="summaryTitle">2026 年 4 月</h2>
+          </div>
+          <label class="month-picker">
+            <span>月份</span>
+            <input id="summaryMonth" type="month">
+          </label>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>結餘</span>
+            <strong id="balanceValue">$0</strong>
+          </article>
+          <article class="stat-card income">
+            <span>收入</span>
+            <strong id="incomeValue">$0</strong>
+          </article>
+          <article class="stat-card expense">
+            <span>支出</span>
+            <strong id="expenseValue">$0</strong>
+          </article>
+        </div>
+
+        <div class="insight-grid">
+          <article class="mini-card">
+            <span>最大支出分類</span>
+            <strong id="topCategoryValue">暫無資料</strong>
+          </article>
+          <article class="mini-card">
+            <span>記錄筆數</span>
+            <strong id="transactionCountValue">0 筆</strong>
+          </article>
+        </div>
+
+        <details class="details-panel">
+          <summary>查看本月分類與花費分布</summary>
+          <div class="details-body">
+            <section class="chart-card">
+              <div class="chart-header">
+                <h3>支出分類</h3>
+                <span id="chartHint">本月支出分布</span>
+              </div>
+              <div id="categoryChart" class="chart-list empty-state-inline">
+                本月還沒有支出紀錄
+              </div>
+            </section>
+          </div>
+        </details>
+      </section>
+
       <section class="panel transactions-panel">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">紀錄列表</p>
+            <p class="eyebrow">最近記錄</p>
             <h2>查詢與整理</h2>
           </div>
           <button id="clearFiltersButton" class="ghost-button">清除篩選</button>
@@ -181,11 +163,36 @@
         </div>
       </section>
 
+      <section class="panel account-panel compact-panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">同步</p>
+            <h2>雲端狀態</h2>
+          </div>
+          <span id="syncModeBadge" class="mode-badge local">本機模式</span>
+        </div>
+
+        <div class="account-card">
+          <div class="account-copy">
+            <p id="accountStatus" class="account-status">目前尚未登入，資料只會存在這台裝置的瀏覽器裡。</p>
+            <p id="accountDetail" class="account-detail">設定 Firebase 後，登入 Google 帳號就能把資料同步到你自己的 Firestore。</p>
+          </div>
+
+          <div class="account-actions">
+            <button id="signInButton" class="primary-button" type="button">Google 登入</button>
+            <button id="signOutButton" class="ghost-button" type="button" hidden>登出</button>
+            <button id="migrateButton" class="secondary-button" type="button" hidden>同步本機資料</button>
+          </div>
+        </div>
+
+        <p id="accountHint" class="account-hint">公開網址公開的是程式，不是你的資料。只有通過 Firebase Auth 並符合規則的人才能讀到資料。</p>
+      </section>
+
       <section class="panel backup-panel">
         <div class="section-heading compact">
           <div>
             <p class="eyebrow">備份</p>
-            <h2>保留自己的資料</h2>
+            <h2>匯出與匯入</h2>
           </div>
         </div>
 
