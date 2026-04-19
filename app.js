@@ -58,9 +58,7 @@ const DRAGON_STAGES = [
 ];
 
 const CELEBRATION_IMAGES = [
-  "assets/celebration/celebrate-tea-party.png",
-  "assets/celebration/celebrate-bunny-coin.png",
-  "assets/celebration/celebrate-checklist.png",
+  "assets/celebration/celebrate-yuanbao.png",
 ];
 
 const state = {
