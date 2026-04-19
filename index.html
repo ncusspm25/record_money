@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#f4ede1">
+  <meta name="theme-color" content="#13100e">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="口袋記帳">
   <meta name="description" content="可在手機使用、支援 Google 登入與 Firebase Firestore 的個人記帳 App">
   <link rel="manifest" href="manifest.webmanifest">
@@ -13,104 +13,127 @@
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <title>口袋記帳</title>
 </head>
 <body>
   <div class="app-shell">
-    <header class="hero">
-      <div>
+    <header class="app-header">
+      <div class="brand-block">
         <p class="eyebrow">Pocket Ledger</p>
         <h1>口袋記帳</h1>
-        <p class="hero-copy">打開就能快速記一筆。雲端同步、月花費統計、備份功能都留著，但不再擋住你最常做的事。</p>
+        <p class="header-copy">像專業記帳 app 一樣切分功能頁，打開先記，後面再看概況、同步與備份。</p>
       </div>
-      <svg class="hero-mark" width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="44" cy="44" r="40" stroke="rgba(201,104,48,0.16)" stroke-width="1.5"/>
-        <circle cx="44" cy="44" r="28" stroke="rgba(201,104,48,0.09)" stroke-width="1" stroke-dasharray="4 3.5"/>
-        <rect x="24" y="54" width="9" height="13" rx="3" fill="rgba(201,104,48,0.20)"/>
-        <rect x="39" y="43" width="9" height="24" rx="3" fill="rgba(201,104,48,0.32)"/>
-        <rect x="54" y="32" width="9" height="35" rx="3" fill="rgba(201,104,48,0.46)"/>
-        <polyline points="28.5,54 43.5,43 58.5,32" stroke="rgba(138,56,18,0.28)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="18" y1="67" x2="70" y2="67" stroke="rgba(201,104,48,0.18)" stroke-width="1" stroke-linecap="round"/>
-      </svg>
-      <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
+      <div class="header-actions">
+        <div class="mascot-stack" aria-hidden="true">
+          <span class="mascot-chip">🐕</span>
+          <span class="mascot-chip">🐶</span>
+          <span class="mascot-chip">🐱</span>
+        </div>
+        <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
+      </div>
     </header>
 
-    <main class="layout">
-      <section class="panel form-panel spotlight-panel">
-        <div class="section-heading compact">
+    <main class="app-content">
+      <section class="tab-page is-active" data-tab-page="quick">
+        <div class="page-heading">
           <div>
-            <p class="eyebrow">立即記帳</p>
+            <p class="eyebrow">快速記帳</p>
             <h2 id="formTitle">快速記一筆</h2>
           </div>
+          <div class="page-badge">今天就先從這裡開始</div>
         </div>
 
-        <p class="form-intro">先記下來最重要。其他統計、同步、備份都放在下面慢慢看。</p>
+        <div class="quick-glance-grid">
+          <article class="mini-surface highlight-surface">
+            <span>今天已記錄</span>
+            <strong id="todayRecordCountValue">0 筆</strong>
+          </article>
+          <article class="mini-surface">
+            <span>今日支出</span>
+            <strong id="todayExpenseValue">$0</strong>
+          </article>
+        </div>
 
-        <form id="transactionForm" class="entry-form">
-          <input id="transactionId" type="hidden">
-
-          <div class="type-toggle" role="radiogroup" aria-label="收支類型">
-            <label>
-              <input type="radio" name="type" value="expense" checked>
-              <span>支出</span>
-            </label>
-            <label>
-              <input type="radio" name="type" value="income">
-              <span>收入</span>
-            </label>
+        <section class="surface surface-hero">
+          <p class="surface-note">收一點毛孩陪伴感，但流程還是以快記為主。</p>
+          <div class="form-pets" aria-hidden="true">
+            <span>小柴犬陪你記</span>
+            <span>⋆</span>
+            <span>馬爾濟斯盯預算</span>
+            <span>⋆</span>
+            <span>小貓幫你收尾</span>
           </div>
 
-          <label class="amount-label">
-            <span>金額</span>
-            <input id="amountInput" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
-          </label>
+          <form id="transactionForm" class="entry-form">
+            <input id="transactionId" type="hidden">
 
-          <label>
-            <span>分類</span>
-            <select id="categorySelect">
-              <option value="">請選擇分類</option>
-            </select>
-          </label>
-          <label id="customCategoryField" hidden>
-            <span>自訂分類</span>
-            <input id="customCategoryInput" type="text" placeholder="例如 寵物零食">
-          </label>
-
-          <div id="needWantField" class="need-want-field">
-            <span class="field-label">這筆屬於</span>
-            <div class="type-toggle need-want-toggle" role="radiogroup" aria-label="需要或想要">
+            <div class="type-toggle" role="radiogroup" aria-label="收支類型">
               <label>
-                <input type="radio" name="needWant" value="need" checked>
-                <span>需要</span>
+                <input type="radio" name="type" value="expense" checked>
+                <span>支出</span>
               </label>
               <label>
-                <input type="radio" name="needWant" value="want">
-                <span>想要</span>
+                <input type="radio" name="type" value="income">
+                <span>收入</span>
               </label>
             </div>
-          </div>
 
-          <label>
-            <span>日期</span>
-            <input id="dateInput" type="date">
-          </label>
+            <label class="amount-label">
+              <span>金額</span>
+              <input id="amountInput" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
+            </label>
 
-          <label>
-            <span>備註</span>
-            <textarea id="noteInput" rows="3" placeholder="可選填，例如 午餐、捷運、薪水"></textarea>
-          </label>
+            <div class="form-grid two-col">
+              <label>
+                <span>分類</span>
+                <select id="categorySelect">
+                  <option value="">請選擇分類</option>
+                </select>
+              </label>
 
-          <div class="form-actions">
-            <button id="saveButton" type="submit" class="primary-button">儲存紀錄</button>
-            <button id="cancelEditButton" class="ghost-button" type="button" hidden>取消編輯</button>
-          </div>
-        </form>
+              <div id="needWantField" class="need-want-field">
+                <span class="field-label">這筆屬於</span>
+                <div class="type-toggle need-want-toggle" role="radiogroup" aria-label="需要或想要">
+                  <label>
+                    <input type="radio" name="needWant" value="need" checked>
+                    <span>需要</span>
+                  </label>
+                  <label>
+                    <input type="radio" name="needWant" value="want">
+                    <span>想要</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <label id="customCategoryField" hidden>
+              <span>自訂分類</span>
+              <input id="customCategoryInput" type="text" placeholder="例如 寵物零食">
+            </label>
+
+            <div class="form-grid two-col">
+              <label>
+                <span>日期</span>
+                <input id="dateInput" type="date">
+              </label>
+              <label>
+                <span>備註</span>
+                <input id="noteInput" type="text" placeholder="例如 午餐、捷運、薪水">
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button id="saveButton" type="submit" class="primary-button">儲存紀錄</button>
+              <button id="cancelEditButton" class="ghost-button" type="button" hidden>取消編輯</button>
+            </div>
+          </form>
+        </section>
       </section>
 
-      <section class="panel summary-panel">
-        <div class="section-heading">
+      <section class="tab-page" data-tab-page="overview">
+        <div class="page-heading">
           <div>
             <p class="eyebrow">本月概況</p>
             <h2 id="summaryTitle">2026 年 4 月</h2>
@@ -121,165 +144,229 @@
           </label>
         </div>
 
-        <div class="stats-grid">
-          <article class="stat-card">
+        <div class="overview-grid top-grid">
+          <article class="surface stat-surface">
             <span>結餘</span>
             <strong id="balanceValue">$0</strong>
           </article>
-          <article class="stat-card income">
+          <article class="surface stat-surface income">
             <span>收入</span>
             <strong id="incomeValue">$0</strong>
           </article>
-          <article class="stat-card expense">
+          <article class="surface stat-surface expense">
             <span>支出</span>
             <strong id="expenseValue">$0</strong>
           </article>
         </div>
 
-        <div class="insight-grid">
-          <article class="mini-card">
-            <span>最大支出分類</span>
-            <strong id="topCategoryValue">暫無資料</strong>
+        <div class="overview-grid middle-grid">
+          <article class="surface">
+            <span class="surface-label">最大支出分類</span>
+            <strong id="topCategoryValue" class="surface-big-text">暫無資料</strong>
           </article>
-          <article class="mini-card">
-            <span>記錄筆數</span>
-            <strong id="transactionCountValue">0 筆</strong>
+          <article class="surface">
+            <span class="surface-label">記錄筆數</span>
+            <strong id="transactionCountValue" class="surface-big-text">0 筆</strong>
           </article>
         </div>
 
-        <div class="pie-chart-row" id="pieChartRow" hidden>
-          <div id="pieChartContainer" class="pie-chart-wrap"></div>
-          <ul id="pieChartLegend" class="pie-legend"></ul>
+        <div class="overview-grid metric-grid">
+          <article class="surface">
+            <span class="surface-label">需要支出</span>
+            <strong id="needSpendValue" class="metric-value">$0</strong>
+          </article>
+          <article class="surface">
+            <span class="surface-label">想要支出</span>
+            <strong id="wantSpendValue" class="metric-value">$0</strong>
+          </article>
+          <article class="surface">
+            <span class="surface-label">最大單筆支出</span>
+            <strong id="largestExpenseValue" class="metric-value">暫無資料</strong>
+          </article>
+          <article class="surface">
+            <span class="surface-label">平均每筆支出</span>
+            <strong id="averageExpenseValue" class="metric-value">$0</strong>
+          </article>
         </div>
 
-        <details class="details-panel">
-          <summary>查看本月分類與花費分布</summary>
-          <div class="details-body">
-            <section class="chart-card">
-              <div class="chart-header">
-                <h3>支出分類</h3>
-                <span id="chartHint">本月支出分布</span>
-              </div>
-              <div id="categoryChart" class="chart-list empty-state-inline">
-                本月還沒有支出紀錄
-              </div>
-            </section>
+        <section class="surface chart-surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">支出占比</p>
+              <h3>本月圓餅圖</h3>
+            </div>
+            <p id="monthlyPulseValue" class="surface-note">先記幾筆，這裡就會開始有趨勢。</p>
           </div>
-        </details>
+          <div class="pie-chart-row" id="pieChartRow" hidden>
+            <div id="pieChartContainer" class="pie-chart-wrap"></div>
+            <ul id="pieChartLegend" class="pie-legend"></ul>
+          </div>
+          <div id="pieChartEmpty" class="empty-state-inline">本月還沒有支出資料</div>
+        </section>
+
+        <section class="surface chart-surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">分類排行</p>
+              <h3>本月分類與花費分布</h3>
+            </div>
+            <span id="chartHint" class="surface-caption">依支出金額排序</span>
+          </div>
+          <div id="categoryChart" class="chart-list empty-state-inline">
+            本月還沒有支出紀錄
+          </div>
+        </section>
       </section>
 
-      <section class="panel transactions-panel">
-        <div class="section-heading">
+      <section class="tab-page" data-tab-page="records">
+        <div class="page-heading">
           <div>
-            <p class="eyebrow">最近記錄</p>
+            <p class="eyebrow">記錄列表</p>
             <h2>查詢與整理</h2>
           </div>
           <button id="clearFiltersButton" class="ghost-button">清除篩選</button>
         </div>
 
-        <div class="filters-grid">
-          <label>
-            <span>月份</span>
-            <input id="filterMonth" type="month">
-          </label>
-          <label>
-            <span>類型</span>
-            <select id="filterType">
-              <option value="all">全部</option>
-              <option value="expense">支出</option>
-              <option value="income">收入</option>
-            </select>
-          </label>
-          <label>
-            <span>搜尋</span>
-            <input id="filterQuery" type="search" placeholder="分類或備註">
-          </label>
-        </div>
+        <section class="surface">
+          <div class="filters-grid">
+            <label>
+              <span>月份</span>
+              <input id="filterMonth" type="month">
+            </label>
+            <label>
+              <span>類型</span>
+              <select id="filterType">
+                <option value="all">全部</option>
+                <option value="expense">支出</option>
+                <option value="income">收入</option>
+              </select>
+            </label>
+            <label>
+              <span>搜尋</span>
+              <input id="filterQuery" type="search" placeholder="分類或備註">
+            </label>
+          </div>
 
-        <div id="transactionList" class="transaction-list empty-state">
-          目前還沒有任何記帳資料
-        </div>
+          <div id="transactionList" class="transaction-list empty-state">
+            目前還沒有任何記帳資料
+          </div>
+        </section>
       </section>
 
-      <section class="panel account-panel compact-panel">
-        <div class="section-heading compact">
+      <section class="tab-page" data-tab-page="sync">
+        <div class="page-heading">
           <div>
-            <p class="eyebrow">同步</p>
-            <h2>雲端狀態</h2>
+            <p class="eyebrow">雲端同步</p>
+            <h2>帳本同步與裝置管理</h2>
           </div>
           <span id="syncModeBadge" class="mode-badge local">本機模式</span>
         </div>
 
-        <div class="account-card">
-          <div class="account-copy">
-            <p id="accountStatus" class="account-status">目前尚未登入，資料只會存在這台裝置的瀏覽器裡。</p>
-            <p id="accountDetail" class="account-detail">設定 Firebase 後，登入 Google 帳號就能把資料同步到你自己的 Firestore。</p>
+        <section class="surface sync-surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">目前狀態</p>
+              <h3 id="accountStatus">目前尚未登入，資料只會存在這台裝置的瀏覽器裡。</h3>
+            </div>
           </div>
-
+          <p id="accountDetail" class="surface-note">設定 Firebase 後，登入 Google 帳號就能把資料同步到你自己的 Firestore。</p>
           <div class="account-actions">
             <button id="signInButton" class="primary-button" type="button">Google 登入</button>
             <button id="signOutButton" class="ghost-button" type="button" hidden>登出</button>
             <button id="migrateButton" class="secondary-button" type="button" hidden>同步本機資料</button>
           </div>
-        </div>
+          <p id="accountHint" class="surface-caption">公開網址公開的是程式，不是你的資料。只有通過 Firebase Auth 並符合規則的人才能讀到資料。</p>
+        </section>
 
-        <p id="accountHint" class="account-hint">公開網址公開的是程式，不是你的資料。只有通過 Firebase Auth 並符合規則的人才能讀到資料。</p>
+        <section class="surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">安裝方式</p>
+              <h3>把它放到手機桌面</h3>
+            </div>
+          </div>
+          <p class="surface-note">iPhone 用 Safari 的「加入主畫面」，Android 用 Chrome 的「安裝應用程式」。安裝後會更像真正的 app。</p>
+          <button class="secondary-button inline-install-button" type="button" data-install-trigger>安裝到主畫面</button>
+        </section>
       </section>
 
-      <section class="panel backup-panel">
-        <div class="section-heading compact">
+      <section class="tab-page" data-tab-page="backup">
+        <div class="page-heading">
           <div>
             <p class="eyebrow">備份</p>
-            <h2>匯出與匯入</h2>
+            <h2>匯出、匯入與資料安全</h2>
           </div>
+          <div class="page-badge accent-badge">建議每月備份一次</div>
         </div>
 
-        <div class="backup-actions">
-          <button id="exportJsonButton" class="secondary-button" type="button">匯出 JSON</button>
-          <button id="exportCsvButton" class="secondary-button" type="button">匯出 CSV</button>
-          <label class="file-button">
-            <input id="importInput" type="file" accept="application/json">
-            <span>匯入 JSON</span>
-          </label>
-        </div>
+        <section class="surface">
+          <div class="backup-actions">
+            <button id="exportJsonButton" class="secondary-button" type="button">匯出 JSON</button>
+            <button id="exportCsvButton" class="secondary-button" type="button">匯出 CSV</button>
+            <label class="file-button">
+              <input id="importInput" type="file" accept="application/json">
+              <span>匯入 JSON</span>
+            </label>
+          </div>
+          <p id="backupNote" class="backup-note">目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。</p>
+        </section>
 
-        <p id="backupNote" class="backup-note">目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。</p>
+        <div class="overview-grid backup-grid">
+          <article class="surface">
+            <span class="surface-label">建議保存位置</span>
+            <strong class="surface-big-text">Google Drive / iCloud / 檔案夾</strong>
+          </article>
+          <article class="surface">
+            <span class="surface-label">專業使用習慣</span>
+            <strong class="surface-big-text">大改版前先匯出 JSON</strong>
+          </article>
+        </div>
       </section>
     </main>
+
+    <nav class="bottom-nav" aria-label="主要功能">
+      <button class="tab-button is-active" type="button" data-tab-target="quick">
+        <span class="nav-icon">✦</span>
+        <span>快速記帳</span>
+      </button>
+      <button class="tab-button" type="button" data-tab-target="overview">
+        <span class="nav-icon">◔</span>
+        <span>本月概況</span>
+      </button>
+      <button class="tab-button" type="button" data-tab-target="records">
+        <span class="nav-icon">≣</span>
+        <span>記錄</span>
+      </button>
+      <button class="tab-button" type="button" data-tab-target="sync">
+        <span class="nav-icon">☁</span>
+        <span>雲端同步</span>
+      </button>
+      <button class="tab-button" type="button" data-tab-target="backup">
+        <span class="nav-icon">⭳</span>
+        <span>備份</span>
+      </button>
+    </nav>
   </div>
 
   <div id="celebrationOverlay" class="celebration-overlay" hidden>
     <div class="celebration-card">
       <svg class="chiikawa-svg" viewBox="0 0 100 115" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <!-- Ears (behind head) -->
         <circle cx="32" cy="22" r="12" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
         <circle cx="68" cy="22" r="12" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
         <circle cx="32" cy="23" r="7.5" fill="#f5c8bf" opacity="0.55"/>
         <circle cx="68" cy="23" r="7.5" fill="#f5c8bf" opacity="0.55"/>
-        <!-- Body -->
         <ellipse cx="50" cy="94" rx="22" ry="17" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
-        <!-- Head -->
         <circle cx="50" cy="53" r="34" fill="#f4f0e6" stroke="#c9b49a" stroke-width="1.2"/>
-        <!-- Eyes -->
         <circle cx="39" cy="50" r="5.5" fill="#1e140c"/>
         <circle cx="61" cy="50" r="5.5" fill="#1e140c"/>
         <circle cx="41" cy="47.5" r="2" fill="white"/>
         <circle cx="63" cy="47.5" r="2" fill="white"/>
-        <!-- Nose -->
         <ellipse cx="50" cy="59" rx="2.5" ry="2" fill="#deaaa0" opacity="0.72"/>
-        <!-- Mouth -->
         <path d="M 43 65 Q 50 72 57 65" stroke="#1e140c" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <!-- Blush -->
         <ellipse cx="30" cy="59" rx="8.5" ry="5" fill="#f5a0a0" opacity="0.26"/>
         <ellipse cx="70" cy="59" rx="8.5" ry="5" fill="#f5a0a0" opacity="0.26"/>
-        <!-- Arms -->
         <path d="M 29 90 Q 17 98 21 108" stroke="#c9b49a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
         <path d="M 71 90 Q 83 98 79 108" stroke="#c9b49a" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-        <!-- Sparkles -->
-        <path d="M 10 33 L 12 27 L 14 33 L 8 30 L 16 30 Z" fill="#c96830" opacity="0.5"/>
-        <path d="M 88 28 L 90 22 L 92 28 L 86 25 L 94 25 Z" fill="#c96830" opacity="0.45"/>
-        <circle cx="16" cy="68" r="2" fill="#c96830" opacity="0.38"/>
-        <circle cx="84" cy="72" r="1.5" fill="#c96830" opacity="0.32"/>
       </svg>
       <p class="celebration-label">記帳成功！</p>
     </div>

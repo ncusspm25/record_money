@@ -31,6 +31,7 @@ const DEFAULT_CATEGORIES = {
 const state = {
   transactions: [],
   localTransactions: [],
+  activeTab: "quick",
   filters: {
     month: "",
     type: "all",
@@ -59,6 +60,8 @@ const elements = {
   needWantField: document.querySelector("#needWantField"),
   dateInput: document.querySelector("#dateInput"),
   noteInput: document.querySelector("#noteInput"),
+  todayRecordCountValue: document.querySelector("#todayRecordCountValue"),
+  todayExpenseValue: document.querySelector("#todayExpenseValue"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -66,7 +69,13 @@ const elements = {
   expenseValue: document.querySelector("#expenseValue"),
   topCategoryValue: document.querySelector("#topCategoryValue"),
   transactionCountValue: document.querySelector("#transactionCountValue"),
+  needSpendValue: document.querySelector("#needSpendValue"),
+  wantSpendValue: document.querySelector("#wantSpendValue"),
+  largestExpenseValue: document.querySelector("#largestExpenseValue"),
+  averageExpenseValue: document.querySelector("#averageExpenseValue"),
+  monthlyPulseValue: document.querySelector("#monthlyPulseValue"),
   categoryChart: document.querySelector("#categoryChart"),
+  pieChartEmpty: document.querySelector("#pieChartEmpty"),
   filterMonth: document.querySelector("#filterMonth"),
   filterType: document.querySelector("#filterType"),
   filterQuery: document.querySelector("#filterQuery"),
@@ -86,6 +95,9 @@ const elements = {
   signOutButton: document.querySelector("#signOutButton"),
   migrateButton: document.querySelector("#migrateButton"),
   backupNote: document.querySelector("#backupNote"),
+  tabButtons: Array.from(document.querySelectorAll("[data-tab-target]")),
+  tabPages: Array.from(document.querySelectorAll("[data-tab-page]")),
+  installTriggers: Array.from(document.querySelectorAll("[data-install-trigger]")),
 };
 
 let toastTimer = null;
@@ -112,7 +124,9 @@ async function bootstrap() {
   renderCategoryOptions();
   updateCategoryVisibility();
   updateNeedWantVisibility();
+  updateNeedWantToggle();
   render();
+  applyActiveTab();
   registerServiceWorker();
   await initFirebase();
 }
@@ -121,6 +135,11 @@ function attachEventListeners() {
   elements.transactionForm.addEventListener("submit", handleSubmit);
   elements.cancelEditButton.addEventListener("click", resetForm);
   elements.categorySelect.addEventListener("change", updateCategoryVisibility);
+  for (const tabButton of elements.tabButtons) {
+    tabButton.addEventListener("click", () => {
+      setActiveTab(tabButton.dataset.tabTarget || "quick");
+    });
+  }
 
   for (const radio of elements.transactionForm.querySelectorAll('input[name="type"]')) {
     radio.addEventListener("change", () => {
@@ -183,16 +202,14 @@ function attachEventListeners() {
   });
 
   elements.installButton.addEventListener("click", async () => {
-    if (!state.installPrompt) {
-      showToast("目前這台裝置沒有出現安裝提示");
-      return;
-    }
-
-    state.installPrompt.prompt();
-    await state.installPrompt.userChoice;
-    state.installPrompt = null;
-    elements.installButton.hidden = true;
+    await handleInstall();
   });
+
+  for (const trigger of elements.installTriggers) {
+    trigger.addEventListener("click", async () => {
+      await handleInstall();
+    });
+  }
 
   window.addEventListener("appinstalled", () => {
     elements.installButton.hidden = true;
@@ -425,19 +442,27 @@ async function saveTransactionToCloud(transaction) {
 }
 
 function render() {
+  renderQuickGlance();
   renderSummary();
   renderTransactions();
   renderAuthPanel();
   renderBackupNote();
+  applyActiveTab();
 }
 
 function renderSummary() {
   const items = filterByMonth(state.transactions, state.summaryMonth);
-  const income = sumAmounts(items.filter((item) => item.type === "income"));
-  const expense = sumAmounts(items.filter((item) => item.type === "expense"));
+  const incomeItems = items.filter((item) => item.type === "income");
+  const expenseItems = items.filter((item) => item.type === "expense");
+  const income = sumAmounts(incomeItems);
+  const expense = sumAmounts(expenseItems);
   const balance = income - expense;
   const expenseByCategory = groupExpenseByCategory(items);
   const topCategory = expenseByCategory[0];
+  const needExpense = sumAmounts(expenseItems.filter((item) => item.needWant !== "want"));
+  const wantExpense = sumAmounts(expenseItems.filter((item) => item.needWant === "want"));
+  const largestExpense = [...expenseItems].sort((left, right) => right.amount - left.amount)[0];
+  const averageExpense = expenseItems.length ? expense / expenseItems.length : 0;
 
   elements.summaryTitle.textContent = state.summaryMonth
     ? formatMonthLabel(state.summaryMonth)
@@ -449,6 +474,20 @@ function renderSummary() {
     ? `${topCategory.category} ${formatCurrency(topCategory.total)}`
     : "暫無資料";
   elements.transactionCountValue.textContent = `${items.length} 筆`;
+  elements.needSpendValue.textContent = formatCurrency(needExpense);
+  elements.wantSpendValue.textContent = formatCurrency(wantExpense);
+  elements.largestExpenseValue.textContent = largestExpense
+    ? `${largestExpense.category} ${formatCurrency(largestExpense.amount)}`
+    : "暫無資料";
+  elements.averageExpenseValue.textContent = formatCurrency(averageExpense);
+  elements.monthlyPulseValue.textContent = getMonthlyPulse({
+    income,
+    expense,
+    needExpense,
+    wantExpense,
+    expenseCount: expenseItems.length,
+    topCategory,
+  });
 
   renderCategoryChart(expenseByCategory, expense);
   renderPieChart(expenseByCategory, expense);
@@ -559,10 +598,12 @@ function renderPieChart(expenseByCategory, totalExpense) {
 
   if (!expenseByCategory.length || totalExpense <= 0) {
     row.hidden = true;
+    if (elements.pieChartEmpty) elements.pieChartEmpty.hidden = false;
     return;
   }
 
   row.hidden = false;
+  if (elements.pieChartEmpty) elements.pieChartEmpty.hidden = true;
   container.innerHTML = "";
   legend.innerHTML = "";
 
@@ -656,6 +697,14 @@ function renderBackupNote() {
   }
 
   elements.backupNote.textContent = "目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。";
+}
+
+function renderQuickGlance() {
+  const today = formatDateInput(new Date());
+  const items = state.transactions.filter((item) => item.date === today);
+  const expense = sumAmounts(items.filter((item) => item.type === "expense"));
+  elements.todayRecordCountValue.textContent = `${items.length} 筆`;
+  elements.todayExpenseValue.textContent = formatCurrency(expense);
 }
 
 function getSyncModeMeta() {
@@ -767,6 +816,8 @@ function startEdit(id) {
   if (!item) {
     return;
   }
+
+  setActiveTab("quick");
 
   elements.transactionId.value = item.id;
   elements.amountInput.value = String(item.amount);
@@ -1049,6 +1100,7 @@ function hydrateSettings() {
     }
 
     state.summaryMonth = settings.summaryMonth || state.summaryMonth;
+    state.activeTab = settings.activeTab || state.activeTab;
     state.filters.month = settings.filters?.month ?? state.filters.month;
     state.filters.type = settings.filters?.type || state.filters.type;
     state.filters.query = settings.filters?.query || state.filters.query;
@@ -1067,6 +1119,7 @@ function persistSettings() {
     SETTINGS_KEY,
     JSON.stringify({
       summaryMonth: state.summaryMonth,
+      activeTab: state.activeTab,
       filters: state.filters,
     })
   );
@@ -1106,6 +1159,37 @@ function showToast(message) {
   }, 2400);
 }
 
+function setActiveTab(tab) {
+  const validTab = elements.tabPages.some((page) => page.dataset.tabPage === tab) ? tab : "quick";
+  state.activeTab = validTab;
+  applyActiveTab();
+  persistSettings();
+}
+
+function applyActiveTab() {
+  for (const page of elements.tabPages) {
+    page.classList.toggle("is-active", page.dataset.tabPage === state.activeTab);
+  }
+
+  for (const button of elements.tabButtons) {
+    const isActive = button.dataset.tabTarget === state.activeTab;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-current", isActive ? "page" : "false");
+  }
+}
+
+async function handleInstall() {
+  if (!state.installPrompt) {
+    showToast("目前這台裝置沒有出現安裝提示");
+    return;
+  }
+
+  state.installPrompt.prompt();
+  await state.installPrompt.userChoice;
+  state.installPrompt = null;
+  elements.installButton.hidden = true;
+}
+
 function isCloudMode() {
   return state.syncMode === "cloud" || state.syncMode === "syncing";
 }
@@ -1116,6 +1200,26 @@ function isFirebaseConfigured(config) {
     const value = String(config?.[key] || "").trim();
     return value && !value.startsWith("YOUR_");
   });
+}
+
+function getMonthlyPulse({ income, expense, needExpense, wantExpense, expenseCount, topCategory }) {
+  if (!expenseCount) {
+    return "先記幾筆，這裡就會開始有本月消費輪廓。";
+  }
+
+  if (income > 0 && expense <= income * 0.7) {
+    return "這個月目前花得還算穩，結餘空間充足。";
+  }
+
+  if (wantExpense > needExpense) {
+    return "想要支出高於需要支出，可以留意一下衝動購物。";
+  }
+
+  if (topCategory) {
+    return `這個月目前最大宗支出在「${topCategory.category}」。`;
+  }
+
+  return "本月支出正在累積，記得偶爾回來看看分類分布。";
 }
 
 function compareTransactions(left, right) {
