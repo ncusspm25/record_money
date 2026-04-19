@@ -1,6 +1,6 @@
 {
-  "name": "口袋記帳",
-  "short_name": "記帳",
+  "name": "元寶記帳",
+  "short_name": "元寶記帳",
   "description": "個人用、可離線的手機記帳 App",
   "start_url": "./",
   "display": "standalone",

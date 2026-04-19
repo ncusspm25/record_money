@@ -210,6 +210,8 @@ button {
 }
 
 .header-copy,
+.brand-tagline,
+.brand-credit,
 .surface-note,
 .surface-caption,
 .backup-note {
@@ -221,6 +223,19 @@ button {
   max-width: 520px;
   margin: 12px 0 0;
   font-size: 0.95rem;
+}
+
+.brand-tagline {
+  margin: 12px 0 0;
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.brand-credit {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  opacity: 0.9;
 }
 
 .header-actions {
