@@ -193,6 +193,113 @@ button {
     linear-gradient(180deg, rgba(36, 27, 22, 0.98), rgba(26, 21, 18, 0.96));
 }
 
+.dragon-surface {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(255, 167, 90, 0.28), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(255, 110, 50, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(37, 28, 23, 0.98), rgba(24, 18, 15, 0.98));
+}
+
+.dragon-surface[data-stage="2"] {
+  background:
+    radial-gradient(circle at top right, rgba(255, 162, 74, 0.34), transparent 36%),
+    radial-gradient(circle at bottom left, rgba(255, 124, 60, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(40, 25, 19, 0.98), rgba(24, 16, 12, 0.98));
+}
+
+.dragon-surface[data-stage="3"] {
+  background:
+    radial-gradient(circle at top right, rgba(255, 208, 105, 0.34), transparent 36%),
+    radial-gradient(circle at bottom left, rgba(255, 115, 56, 0.24), transparent 34%),
+    linear-gradient(180deg, rgba(46, 23, 15, 0.98), rgba(24, 12, 8, 0.98));
+}
+
+.dragon-shell {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.dragon-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+}
+
+.dragon-orbit {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 171, 90, 0.28), rgba(255, 116, 38, 0.06) 56%, transparent 72%);
+  filter: blur(10px);
+}
+
+.dragon-image {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 220px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 40px rgba(0, 0, 0, 0.38));
+  animation: dragon-float 3.6s ease-in-out infinite;
+}
+
+.dragon-copy {
+  display: grid;
+  gap: 16px;
+}
+
+.dragon-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dragon-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  letter-spacing: -0.04em;
+}
+
+.dragon-badge {
+  color: var(--gold);
+  border-color: rgba(241, 195, 109, 0.22);
+  background: rgba(241, 195, 109, 0.1);
+}
+
+.dragon-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dragon-progress-block {
+  display: grid;
+  gap: 10px;
+}
+
+.dragon-progress-track {
+  overflow: hidden;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.dragon-progress-fill {
+  width: 10%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff9a57, #ffd36b);
+  box-shadow: 0 0 24px rgba(255, 167, 86, 0.38);
+  transition: width 220ms ease;
+}
+
 .highlight-surface {
   border-color: rgba(235, 126, 55, 0.22);
 }
@@ -794,6 +901,17 @@ textarea:focus {
   }
 }
 
+@keyframes dragon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding-left: 14px;
@@ -824,7 +942,9 @@ textarea:focus {
   .backup-grid,
   .filters-grid,
   .form-grid.two-col,
-  .pie-chart-row {
+  .pie-chart-row,
+  .dragon-shell,
+  .dragon-metrics {
     grid-template-columns: 1fr;
   }
 
@@ -845,5 +965,18 @@ textarea:focus {
 
   .tab-button span:last-child {
     font-size: 0.66rem;
+  }
+
+  .dragon-visual {
+    min-height: 170px;
+  }
+
+  .dragon-image {
+    width: min(100%, 180px);
+  }
+
+  .dragon-head {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

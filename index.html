@@ -45,6 +45,51 @@
           <div class="page-badge">今天就先從這裡開始</div>
         </div>
 
+        <section id="dragonCompanionCard" class="surface dragon-surface" data-stage="1">
+          <div class="dragon-shell">
+            <div class="dragon-visual">
+              <div class="dragon-orbit" aria-hidden="true"></div>
+              <img
+                id="dragonStageImage"
+                class="dragon-image"
+                src="assets/dragons/dragon-stage-1.png"
+                alt="陪你記帳的小火龍"
+                loading="eager"
+              >
+            </div>
+
+            <div class="dragon-copy">
+              <div class="dragon-head">
+                <div>
+                  <p class="eyebrow">Dragon Companion</p>
+                  <h3 id="dragonStageName">小火龍</h3>
+                </div>
+                <span id="dragonStageBadge" class="mode-badge dragon-badge">初始型態</span>
+              </div>
+
+              <p id="dragonStageHint" class="surface-note">今天先記一筆，讓小火龍開始陪你連續成長。</p>
+
+              <div class="dragon-metrics">
+                <article class="mini-surface">
+                  <span>連續記帳</span>
+                  <strong id="dragonStreakValue">0 天</strong>
+                </article>
+                <article class="mini-surface">
+                  <span>下一次進化</span>
+                  <strong id="dragonMilestoneValue">5 天</strong>
+                </article>
+              </div>
+
+              <div class="dragon-progress-block">
+                <div class="dragon-progress-track" aria-hidden="true">
+                  <div id="dragonProgressFill" class="dragon-progress-fill"></div>
+                </div>
+                <p id="dragonProgressText" class="surface-caption">距離第一次進化還有 5 天。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div class="quick-glance-grid">
           <article class="mini-surface highlight-surface">
             <span>今天已記錄</span>

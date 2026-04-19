@@ -28,6 +28,32 @@ const DEFAULT_CATEGORIES = {
   income: ["薪水", "獎金", "接案", "投資", "退款", "其他收入", "自訂分類"],
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const DRAGON_STAGES = [
+  {
+    stage: 1,
+    minDays: 0,
+    name: "小火龍",
+    badge: "初始型態",
+    image: "assets/dragons/dragon-stage-1.png",
+  },
+  {
+    stage: 2,
+    minDays: 5,
+    name: "展翼火龍",
+    badge: "5 天進化",
+    image: "assets/dragons/dragon-stage-2.png",
+  },
+  {
+    stage: 3,
+    minDays: 30,
+    name: "終焰聖龍",
+    badge: "30 天最終型態",
+    image: "assets/dragons/dragon-stage-3.png",
+  },
+];
+
 const state = {
   transactions: [],
   localTransactions: [],
@@ -62,6 +88,15 @@ const elements = {
   noteInput: document.querySelector("#noteInput"),
   todayRecordCountValue: document.querySelector("#todayRecordCountValue"),
   todayExpenseValue: document.querySelector("#todayExpenseValue"),
+  dragonCompanionCard: document.querySelector("#dragonCompanionCard"),
+  dragonStageImage: document.querySelector("#dragonStageImage"),
+  dragonStageName: document.querySelector("#dragonStageName"),
+  dragonStageBadge: document.querySelector("#dragonStageBadge"),
+  dragonStageHint: document.querySelector("#dragonStageHint"),
+  dragonStreakValue: document.querySelector("#dragonStreakValue"),
+  dragonMilestoneValue: document.querySelector("#dragonMilestoneValue"),
+  dragonProgressFill: document.querySelector("#dragonProgressFill"),
+  dragonProgressText: document.querySelector("#dragonProgressText"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -386,6 +421,7 @@ async function handleSubmit(event) {
   };
 
   elements.saveButton.disabled = true;
+  const previousDragonStage = getDragonStatus(state.transactions).stage;
 
   try {
     await saveTransaction(payload);
@@ -393,6 +429,15 @@ async function handleSubmit(event) {
     render();
     resetForm();
     showToast(existing ? "紀錄已更新" : "已新增記錄");
+    const currentDragon = getDragonStatus(state.transactions);
+    const leveledUp = !existing && currentDragon.stage > previousDragonStage;
+    if (leveledUp) {
+      showToast(`${currentDragon.name} 進化了！`);
+    } else if (existing) {
+      showToast("已更新這筆記錄");
+    } else {
+      showToast("已存下這筆記帳");
+    }
     if (!existing) showCelebration();
   } catch (error) {
     console.error(error);
@@ -442,6 +487,7 @@ async function saveTransactionToCloud(transaction) {
 }
 
 function render() {
+  renderDragonCompanion();
   renderQuickGlance();
   renderSummary();
   renderTransactions();
@@ -705,6 +751,126 @@ function renderQuickGlance() {
   const expense = sumAmounts(items.filter((item) => item.type === "expense"));
   elements.todayRecordCountValue.textContent = `${items.length} 筆`;
   elements.todayExpenseValue.textContent = formatCurrency(expense);
+}
+
+function renderDragonCompanion() {
+  if (!elements.dragonCompanionCard) {
+    return;
+  }
+
+  const status = getDragonStatus(state.transactions);
+  elements.dragonCompanionCard.dataset.stage = String(status.stage);
+  elements.dragonStageImage.src = status.image;
+  elements.dragonStageName.textContent = status.name;
+  elements.dragonStageBadge.textContent = status.badge;
+  elements.dragonStageHint.textContent = status.hint;
+  elements.dragonStreakValue.textContent = `${status.streak} 天`;
+  elements.dragonMilestoneValue.textContent = status.nextMilestoneLabel;
+  elements.dragonProgressFill.style.width = `${status.progressPercent}%`;
+  elements.dragonProgressText.textContent = status.progressText;
+}
+
+function getDragonStatus(items) {
+  const streak = getCurrentStreak(items);
+  const stageConfig = getDragonStageConfig(streak);
+  const latestStamp = getLatestRecordedDayStamp(items);
+  const todayStamp = getDayStamp(formatDateInput(new Date()));
+  const hasTodayRecord = latestStamp === todayStamp;
+  const hasCarryover = latestStamp === todayStamp - DAY_MS;
+  const nextStage = DRAGON_STAGES.find((candidate) => candidate.minDays > streak);
+  const baseProgress = stageConfig.stage === 1
+    ? streak / 5
+    : stageConfig.stage === 2
+      ? (streak - 5) / 25
+      : 1;
+  const progressPercent = Math.max(10, Math.min(100, Math.round(baseProgress * 100)));
+
+  let hint = "今天先記一筆，讓小火龍開始陪你連續成長。";
+  let progressText = "距離第一次進化還有 5 天。";
+  let nextMilestoneLabel = nextStage ? `${nextStage.minDays} 天` : "最終型態已解鎖";
+
+  if (streak === 0) {
+    progressText = "這一筆會是新的連續起點。";
+  } else if (stageConfig.stage === 3) {
+    hint = "你已達成 30 天連續記帳，火龍已經完全進化。";
+    progressText = hasTodayRecord
+      ? "今天也有照顧到最終型態火龍，保持得很漂亮。"
+      : "今天再記一筆，讓最終型態繼續保持滿能量。";
+  } else if (nextStage) {
+    const daysLeft = Math.max(0, nextStage.minDays - streak);
+    hint = `再連續 ${daysLeft} 天就會進化成${nextStage.name}。`;
+    if (hasTodayRecord) {
+      progressText = `今天已完成記帳，距離下一次進化還差 ${daysLeft} 天。`;
+    } else if (hasCarryover) {
+      progressText = `今天再記一筆，就能把 ${streak} 天連續記帳延續下去。`;
+    } else {
+      progressText = `連續紀錄已中斷，今天重新開始培養 ${stageConfig.name}。`;
+    }
+  }
+
+  return {
+    ...stageConfig,
+    streak,
+    hint,
+    progressText,
+    progressPercent,
+    nextMilestoneLabel,
+  };
+}
+
+function getDragonStageConfig(streak) {
+  if (streak >= 30) {
+    return DRAGON_STAGES[2];
+  }
+
+  if (streak >= 5) {
+    return DRAGON_STAGES[1];
+  }
+
+  return DRAGON_STAGES[0];
+}
+
+function getCurrentStreak(items) {
+  const uniqueDayStamps = getUniqueRecordedDayStamps(items);
+  if (!uniqueDayStamps.length) {
+    return 0;
+  }
+
+  const todayStamp = getDayStamp(formatDateInput(new Date()));
+  const latestStamp = uniqueDayStamps[0];
+  if (latestStamp < todayStamp - DAY_MS) {
+    return 0;
+  }
+
+  let streak = 1;
+  for (let index = 1; index < uniqueDayStamps.length; index += 1) {
+    if (uniqueDayStamps[index] === uniqueDayStamps[index - 1] - DAY_MS) {
+      streak += 1;
+      continue;
+    }
+    break;
+  }
+
+  return streak;
+}
+
+function getUniqueRecordedDayStamps(items) {
+  return Array.from(
+    new Set(items.map((item) => getDayStamp(item.date)).filter((stamp) => Number.isFinite(stamp)))
+  ).sort((left, right) => right - left);
+}
+
+function getLatestRecordedDayStamp(items) {
+  return getUniqueRecordedDayStamps(items)[0] ?? null;
+}
+
+function getDayStamp(dateInput) {
+  const [year, month, day] = String(dateInput || "").split("-").map(Number);
+  if (!year || !month || !day) {
+    return NaN;
+  }
+
+  return Date.UTC(year, month - 1, day);
 }
 
 function getSyncModeMeta() {

@@ -1,4 +1,4 @@
-const CACHE_NAME = "pocket-ledger-v2";
+const CACHE_NAME = "pocket-ledger-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,9 @@ const ASSETS = [
   "./app.js",
   "./firebase-config.js",
   "./manifest.webmanifest",
+  "./assets/dragons/dragon-stage-1.png",
+  "./assets/dragons/dragon-stage-2.png",
+  "./assets/dragons/dragon-stage-3.png",
   "./assets/icons/icon.svg",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
