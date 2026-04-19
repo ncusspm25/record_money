@@ -22,10 +22,11 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const STORAGE_KEY = "pocket-ledger-transactions";
 const SETTINGS_KEY = "pocket-ledger-settings";
+const SBD_RECORDS_KEY = "yuanbao-ledger-sbd-records";
 
 const DEFAULT_CATEGORIES = {
-  expense: ["餐飲", "交通", "日用品", "雜費", "娛樂", "自訂分類"],
-  income: ["薪水", "獎金", "接案", "投資", "退款", "其他收入", "自訂分類"],
+  expense: ["餐飲", "交通", "日用品", "雜費", "娛樂"],
+  income: ["薪水", "獎金", "接案", "投資", "退款", "其他收入"],
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -64,6 +65,12 @@ const CELEBRATION_IMAGES = [
 const state = {
   transactions: [],
   localTransactions: [],
+  sbdRecords: [],
+  sbdCalculator: {
+    squat: "",
+    bench: "",
+    deadlift: "",
+  },
   activeTab: "quick",
   filters: {
     date: "",
@@ -108,6 +115,24 @@ const elements = {
   dragonStatAtk: document.querySelector("#dragonStatAtk"),
   dragonStatDef: document.querySelector("#dragonStatDef"),
   dragonStatLevel: document.querySelector("#dragonStatLevel"),
+  sbdSquatInput: document.querySelector("#sbdSquatInput"),
+  sbdBenchInput: document.querySelector("#sbdBenchInput"),
+  sbdDeadliftInput: document.querySelector("#sbdDeadliftInput"),
+  sbdCalcSummary: document.querySelector("#sbdCalcSummary"),
+  sbdAttemptCards: document.querySelector("#sbdAttemptCards"),
+  sbdRecordForm: document.querySelector("#sbdRecordForm"),
+  sbdRecordId: document.querySelector("#sbdRecordId"),
+  sbdRecordDate: document.querySelector("#sbdRecordDate"),
+  sbdBodyweightInput: document.querySelector("#sbdBodyweightInput"),
+  sbdRecordSquat: document.querySelector("#sbdRecordSquat"),
+  sbdRecordBench: document.querySelector("#sbdRecordBench"),
+  sbdRecordDeadlift: document.querySelector("#sbdRecordDeadlift"),
+  sbdRecordNote: document.querySelector("#sbdRecordNote"),
+  sbdRecordTotalPreview: document.querySelector("#sbdRecordTotalPreview"),
+  sbdRecordBestLiftPreview: document.querySelector("#sbdRecordBestLiftPreview"),
+  sbdSaveRecordButton: document.querySelector("#sbdSaveRecordButton"),
+  sbdCancelEditButton: document.querySelector("#sbdCancelEditButton"),
+  sbdRecordList: document.querySelector("#sbdRecordList"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -161,9 +186,13 @@ async function bootstrap() {
   elements.summaryMonth.value = currentMonth;
   elements.filterDate.value = "";
   elements.dateInput.value = todayDate;
+  if (elements.sbdRecordDate) {
+    elements.sbdRecordDate.value = todayDate;
+  }
 
   state.localTransactions = loadLocalTransactions();
   state.transactions = [...state.localTransactions];
+  state.sbdRecords = loadSbdRecords();
   hydrateSettings();
 
   attachEventListeners();
@@ -198,6 +227,26 @@ function attachEventListeners() {
   for (const radio of elements.needWantField.querySelectorAll('input[name="needWant"]')) {
     radio.addEventListener("change", () => updateNeedWantToggle());
   }
+
+  for (const input of [elements.sbdSquatInput, elements.sbdBenchInput, elements.sbdDeadliftInput]) {
+    input?.addEventListener("input", () => {
+      syncSbdCalculatorStateFromInputs();
+      persistSettings();
+      renderSbdCalculator();
+    });
+  }
+
+  for (const input of [
+    elements.sbdBodyweightInput,
+    elements.sbdRecordSquat,
+    elements.sbdRecordBench,
+    elements.sbdRecordDeadlift,
+  ]) {
+    input?.addEventListener("input", renderSbdRecordPreview);
+  }
+
+  elements.sbdRecordForm?.addEventListener("submit", handleSbdRecordSubmit);
+  elements.sbdCancelEditButton?.addEventListener("click", resetSbdRecordForm);
 
   elements.summaryMonth.addEventListener("input", (event) => {
     state.summaryMonth = event.target.value;
@@ -404,12 +453,8 @@ async function handleSubmit(event) {
   }
 
   if (!category) {
-    showToast("請輸入分類");
-    if (elements.categorySelect.value === "自訂分類") {
-      elements.customCategoryInput.focus();
-    } else {
-      elements.categorySelect.focus();
-    }
+    showToast("請選擇分類");
+    elements.categorySelect.focus();
     return;
   }
 
@@ -501,6 +546,9 @@ function render() {
   renderQuickGlance();
   renderSummary();
   renderTransactions();
+  renderSbdCalculator();
+  renderSbdRecordPreview();
+  renderSbdRecords();
   renderAuthPanel();
   renderBackupNote();
   applyActiveTab();
@@ -615,6 +663,293 @@ function renderTransactions() {
   }
 
   elements.transactionList.appendChild(fragment);
+}
+
+function renderSbdCalculator() {
+  if (!elements.sbdCalcSummary || !elements.sbdAttemptCards) {
+    return;
+  }
+
+  const calculator = getSbdCalculatorValues();
+  const lifts = [
+    { key: "squat", label: "深蹲", value: calculator.squat },
+    { key: "bench", label: "臥推", value: calculator.bench },
+    { key: "deadlift", label: "硬舉", value: calculator.deadlift },
+  ];
+
+  const validValues = lifts.map((lift) => lift.value).filter((value) => value > 0);
+  const maxTotal = validValues.reduce((sum, value) => sum + value, 0);
+  const openerTotal = lifts.reduce((sum, lift) => sum + getAttemptWeight(lift.value, 0.9), 0);
+  const thirdTotal = lifts.reduce((sum, lift) => sum + getAttemptWeight(lift.value, 1.02), 0);
+  const bestLift = [...lifts].sort((left, right) => right.value - left.value)[0];
+
+  elements.sbdCalcSummary.innerHTML = `
+    <article class="surface">
+      <span class="surface-label">目前三項總和</span>
+      <strong class="metric-value">${maxTotal ? formatKg(maxTotal) : "--"}</strong>
+    </article>
+    <article class="surface">
+      <span class="surface-label">建議開把總和</span>
+      <strong class="metric-value">${openerTotal ? formatKg(openerTotal) : "--"}</strong>
+    </article>
+    <article class="surface">
+      <span class="surface-label">第三把目標總和</span>
+      <strong class="metric-value">${thirdTotal ? formatKg(thirdTotal) : "--"}</strong>
+    </article>
+    <article class="surface">
+      <span class="surface-label">目前最強項目</span>
+      <strong class="metric-value">${bestLift?.value ? `${bestLift.label} ${formatKg(bestLift.value)}` : "--"}</strong>
+    </article>
+  `;
+
+  elements.sbdAttemptCards.innerHTML = lifts
+    .map((lift) => {
+      const opener = getAttemptWeight(lift.value, 0.9);
+      const second = getAttemptWeight(lift.value, 0.96);
+      const third = getAttemptWeight(lift.value, 1.02);
+
+      return `
+        <article class="surface sbd-attempt-card">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">${lift.key.toUpperCase()}</p>
+              <h3>${lift.label}</h3>
+            </div>
+            <span class="mode-badge">${lift.value ? formatKg(lift.value) : "未輸入"}</span>
+          </div>
+          <div class="sbd-attempt-list">
+            <div class="sbd-attempt-row"><span>Opener</span><strong>${opener ? formatKg(opener) : "--"}</strong></div>
+            <div class="sbd-attempt-row"><span>Second</span><strong>${second ? formatKg(second) : "--"}</strong></div>
+            <div class="sbd-attempt-row"><span>Third</span><strong>${third ? formatKg(third) : "--"}</strong></div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderSbdRecordPreview() {
+  if (!elements.sbdRecordTotalPreview || !elements.sbdRecordBestLiftPreview) {
+    return;
+  }
+
+  const preview = getSbdFormValues();
+  const total = preview.squat + preview.bench + preview.deadlift;
+  const bestLift = getBestLiftLabel(preview);
+
+  elements.sbdRecordTotalPreview.textContent = total ? formatKg(total) : "--";
+  elements.sbdRecordBestLiftPreview.textContent = bestLift;
+}
+
+function renderSbdRecords() {
+  if (!elements.sbdRecordList) {
+    return;
+  }
+
+  if (!state.sbdRecords.length) {
+    elements.sbdRecordList.className = "transaction-list empty-state";
+    elements.sbdRecordList.textContent = "還沒有 SBD 紀錄";
+    return;
+  }
+
+  elements.sbdRecordList.className = "transaction-list";
+  elements.sbdRecordList.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+
+  for (const [dateValue, groupItems] of Object.entries(groupSbdRecordsByDate(state.sbdRecords))) {
+    const section = document.createElement("section");
+    section.className = "transaction-group";
+    section.innerHTML = `
+      <header class="transaction-group-heading">
+        <h3 class="transaction-group-title">${escapeHtml(formatFullDateLabel(dateValue))}</h3>
+        <span class="transaction-group-count">${groupItems.length} 筆</span>
+      </header>
+    `;
+
+    for (const record of groupItems) {
+      const article = document.createElement("article");
+      article.className = "transaction-item sbd-record-item";
+      article.innerHTML = `
+        <div class="transaction-main">
+          <div class="transaction-meta">
+            <p class="transaction-category">Total ${formatKg(record.total)}</p>
+            <p class="transaction-note">深蹲 ${formatKg(record.squat)} / 臥推 ${formatKg(record.bench)} / 硬舉 ${formatKg(record.deadlift)}</p>
+          </div>
+          <div class="transaction-side">
+            <strong class="transaction-amount" style="color: var(--gold)">${record.bodyweight ? `BW ${formatKg(record.bodyweight)}` : getBestLiftLabel(record)}</strong>
+            <span class="transaction-date">${record.note || "沒有備註"}</span>
+          </div>
+        </div>
+        <div class="transaction-actions">
+          <div class="transaction-labels">
+            <span class="transaction-badge">SBD</span>
+            <span class="transaction-badge transaction-badge-secondary need">${getBestLiftLabel(record)}</span>
+          </div>
+          <button class="ghost-button sbd-edit-button" type="button">編輯</button>
+          <button class="ghost-button danger-button sbd-delete-button" type="button">刪除</button>
+        </div>
+      `;
+
+      article.querySelector(".sbd-edit-button")?.addEventListener("click", () => startSbdEdit(record.id));
+      article.querySelector(".sbd-delete-button")?.addEventListener("click", () => void deleteSbdRecord(record.id));
+      section.appendChild(article);
+    }
+
+    fragment.appendChild(section);
+  }
+
+  elements.sbdRecordList.appendChild(fragment);
+}
+
+async function handleSbdRecordSubmit(event) {
+  event.preventDefault();
+
+  const payload = getSbdFormValues();
+  const existingId = elements.sbdRecordId?.value || "";
+  const existing = state.sbdRecords.find((item) => item.id === existingId);
+
+  if (!payload.date) {
+    showToast("請先選擇 SBD 日期");
+    elements.sbdRecordDate?.focus();
+    return;
+  }
+
+  if (!payload.squat || !payload.bench || !payload.deadlift) {
+    showToast("請把深蹲、臥推、硬舉都填好");
+    return;
+  }
+
+  const record = normalizeSbdRecord({
+    id: existingId || createId(),
+    ...payload,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  if (!record) {
+    showToast("SBD 紀錄格式不正確");
+    return;
+  }
+
+  const nextRecords = [...state.sbdRecords];
+  const existingIndex = nextRecords.findIndex((item) => item.id === record.id);
+
+  if (existingIndex >= 0) {
+    nextRecords[existingIndex] = record;
+  } else {
+    nextRecords.unshift(record);
+  }
+
+  nextRecords.sort(compareSbdRecords);
+  state.sbdRecords = nextRecords;
+  saveSbdRecords();
+  renderSbdRecords();
+  resetSbdRecordForm();
+  showToast(existing ? "已更新 SBD 紀錄" : "已新增 SBD 紀錄");
+}
+
+function startSbdEdit(id) {
+  const record = state.sbdRecords.find((item) => item.id === id);
+  if (!record || !elements.sbdRecordForm) {
+    return;
+  }
+
+  setActiveTab("sbd");
+  elements.sbdRecordId.value = record.id;
+  elements.sbdRecordDate.value = record.date;
+  elements.sbdBodyweightInput.value = record.bodyweight ? String(record.bodyweight) : "";
+  elements.sbdRecordSquat.value = String(record.squat);
+  elements.sbdRecordBench.value = String(record.bench);
+  elements.sbdRecordDeadlift.value = String(record.deadlift);
+  elements.sbdRecordNote.value = record.note || "";
+  elements.sbdSaveRecordButton.textContent = "更新紀錄";
+  elements.sbdCancelEditButton.hidden = false;
+  renderSbdRecordPreview();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function resetSbdRecordForm() {
+  if (!elements.sbdRecordForm) {
+    return;
+  }
+
+  elements.sbdRecordId.value = "";
+  elements.sbdRecordForm.reset();
+  elements.sbdRecordDate.value = formatDateInput(new Date());
+  elements.sbdSaveRecordButton.textContent = "儲存 SBD 紀錄";
+  elements.sbdCancelEditButton.hidden = true;
+  renderSbdRecordPreview();
+}
+
+async function deleteSbdRecord(id) {
+  const record = state.sbdRecords.find((item) => item.id === id);
+  if (!record) {
+    return;
+  }
+
+  const confirmed = window.confirm(`要刪除這筆 SBD 紀錄嗎？ Total ${formatKg(record.total)}`);
+  if (!confirmed) {
+    return;
+  }
+
+  state.sbdRecords = state.sbdRecords.filter((item) => item.id !== id);
+  saveSbdRecords();
+  renderSbdRecords();
+  if (elements.sbdRecordId?.value === id) {
+    resetSbdRecordForm();
+  }
+  showToast("已刪除 SBD 紀錄");
+}
+
+function syncSbdCalculatorStateFromInputs() {
+  state.sbdCalculator.squat = elements.sbdSquatInput?.value || "";
+  state.sbdCalculator.bench = elements.sbdBenchInput?.value || "";
+  state.sbdCalculator.deadlift = elements.sbdDeadliftInput?.value || "";
+}
+
+function getSbdCalculatorValues() {
+  return {
+    squat: Number(state.sbdCalculator.squat) || 0,
+    bench: Number(state.sbdCalculator.bench) || 0,
+    deadlift: Number(state.sbdCalculator.deadlift) || 0,
+  };
+}
+
+function getSbdFormValues() {
+  return {
+    date: elements.sbdRecordDate?.value || "",
+    bodyweight: Number(elements.sbdBodyweightInput?.value || 0) || 0,
+    squat: Number(elements.sbdRecordSquat?.value || 0) || 0,
+    bench: Number(elements.sbdRecordBench?.value || 0) || 0,
+    deadlift: Number(elements.sbdRecordDeadlift?.value || 0) || 0,
+    note: elements.sbdRecordNote?.value.trim() || "",
+  };
+}
+
+function getAttemptWeight(value, ratio) {
+  if (!value) {
+    return 0;
+  }
+
+  return roundToStep(value * ratio, 2.5);
+}
+
+function roundToStep(value, step) {
+  if (!value || !step) {
+    return 0;
+  }
+
+  return Math.round(value / step) * step;
+}
+
+function getBestLiftLabel(record) {
+  const lifts = [
+    { label: "深蹲", value: Number(record.squat) || 0 },
+    { label: "臥推", value: Number(record.bench) || 0 },
+    { label: "硬舉", value: Number(record.deadlift) || 0 },
+  ].sort((left, right) => right.value - left.value);
+
+  return lifts[0]?.value ? `${lifts[0].label} ${formatKg(lifts[0].value)}` : "--";
 }
 
 function groupTransactionsByDate(items) {
@@ -759,7 +1094,7 @@ function showCelebration() {
     sticker.style.animation = "";
   }
 
-  setTimeout(() => { overlay.hidden = true; }, 2700);
+  setTimeout(() => { overlay.hidden = true; }, 1600);
 }
 
 function updateNeedWantToggle() {
@@ -1055,13 +1390,7 @@ function startEdit(id) {
   }
 
   renderCategoryOptions();
-  if (DEFAULT_CATEGORIES[item.type].includes(item.category)) {
-    elements.categorySelect.value = item.category;
-    elements.customCategoryInput.value = "";
-  } else {
-    elements.categorySelect.value = "自訂分類";
-    elements.customCategoryInput.value = item.category;
-  }
+  elements.categorySelect.value = item.category;
 
   const needVal = item.needWant === "want" ? "want" : "need";
   const needRadio = elements.needWantField.querySelector(`input[name="needWant"][value="${needVal}"]`);
@@ -1129,6 +1458,7 @@ function exportJson() {
     exportedAt: new Date().toISOString(),
     mode: isCloudMode() ? "cloud" : "local",
     transactions: state.transactions,
+    sbdRecords: state.sbdRecords,
   };
 
   downloadFile(
@@ -1172,6 +1502,7 @@ async function importJson(event) {
     const text = await file.text();
     const parsed = JSON.parse(text);
     const transactions = Array.isArray(parsed) ? parsed : parsed.transactions;
+    const rawSbdRecords = Array.isArray(parsed?.sbdRecords) ? parsed.sbdRecords : [];
 
     if (!Array.isArray(transactions)) {
       throw new Error("invalid-format");
@@ -1181,9 +1512,19 @@ async function importJson(event) {
       .map(normalizeTransaction)
       .filter(Boolean)
       .sort(compareTransactions);
+    const normalizedSbdRecords = rawSbdRecords
+      .map(normalizeSbdRecord)
+      .filter(Boolean)
+      .sort(compareSbdRecords);
+
+    if (normalizedSbdRecords.length || rawSbdRecords.length) {
+      state.sbdRecords = normalizedSbdRecords;
+      saveSbdRecords();
+    }
 
     if (isCloudMode()) {
       await importTransactionsToCloud(normalized);
+      render();
       showToast("已匯入到 Firestore");
     } else {
       state.localTransactions = normalized;
@@ -1320,6 +1661,69 @@ function saveLocalTransactions() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.localTransactions));
 }
 
+function loadSbdRecords() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SBD_RECORDS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.map(normalizeSbdRecord).filter(Boolean).sort(compareSbdRecords) : [];
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+function saveSbdRecords() {
+  localStorage.setItem(SBD_RECORDS_KEY, JSON.stringify(state.sbdRecords));
+}
+
+function normalizeSbdRecord(item) {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const date = String(item.date || "").slice(0, 10);
+  const squat = Number(item.squat);
+  const bench = Number(item.bench);
+  const deadlift = Number(item.deadlift);
+  const bodyweight = Number(item.bodyweight || 0) || 0;
+
+  if (!date || squat <= 0 || bench <= 0 || deadlift <= 0) {
+    return null;
+  }
+
+  return {
+    id: String(item.id || createId()),
+    date,
+    bodyweight,
+    squat,
+    bench,
+    deadlift,
+    total: squat + bench + deadlift,
+    note: String(item.note || "").trim(),
+    createdAt: String(item.createdAt || new Date().toISOString()),
+    updatedAt: String(item.updatedAt || new Date().toISOString()),
+  };
+}
+
+function compareSbdRecords(left, right) {
+  const dateCompare = right.date.localeCompare(left.date);
+  if (dateCompare !== 0) {
+    return dateCompare;
+  }
+
+  return right.updatedAt.localeCompare(left.updatedAt);
+}
+
+function groupSbdRecordsByDate(items) {
+  return items.reduce((groups, item) => {
+    if (!groups[item.date]) {
+      groups[item.date] = [];
+    }
+
+    groups[item.date].push(item);
+    return groups;
+  }, {});
+}
+
 function hydrateSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -1337,11 +1741,19 @@ function hydrateSettings() {
     state.filters.date = settings.filters?.date ?? state.filters.date;
     state.filters.type = settings.filters?.type || state.filters.type;
     state.filters.query = settings.filters?.query || state.filters.query;
+    state.sbdCalculator.squat = settings.sbdCalculator?.squat || "";
+    state.sbdCalculator.bench = settings.sbdCalculator?.bench || "";
+    state.sbdCalculator.deadlift = settings.sbdCalculator?.deadlift || "";
 
     elements.summaryMonth.value = state.summaryMonth;
     elements.filterDate.value = state.filters.date;
     elements.filterType.value = state.filters.type;
     elements.filterQuery.value = state.filters.query;
+    if (elements.sbdSquatInput) {
+      elements.sbdSquatInput.value = state.sbdCalculator.squat;
+      elements.sbdBenchInput.value = state.sbdCalculator.bench;
+      elements.sbdDeadliftInput.value = state.sbdCalculator.deadlift;
+    }
   } catch (error) {
     console.error(error);
   }
@@ -1354,6 +1766,7 @@ function persistSettings() {
       summaryMonth: state.summaryMonth,
       activeTab: state.activeTab,
       filters: state.filters,
+      sbdCalculator: state.sbdCalculator,
     })
   );
 }
@@ -1472,6 +1885,16 @@ function formatCurrency(value) {
   }).format(value);
 }
 
+function formatKg(value) {
+  const numericValue = Number(value) || 0;
+  const hasDecimal = Math.abs(numericValue % 1) > 0.001;
+
+  return `${new Intl.NumberFormat("zh-TW", {
+    minimumFractionDigits: hasDecimal ? 1 : 0,
+    maximumFractionDigits: 1,
+  }).format(numericValue)} kg`;
+}
+
 function formatDisplayDate(value) {
   const date = new Date(`${value}T00:00:00`);
   return new Intl.DateTimeFormat("zh-TW", {
@@ -1530,20 +1953,10 @@ function getCurrentType() {
 }
 
 function getSelectedCategory() {
-  const selected = elements.categorySelect.value;
-  if (selected === "自訂分類") {
-    return elements.customCategoryInput.value.trim();
-  }
-  return selected.trim();
+  return elements.categorySelect.value.trim();
 }
 
-function updateCategoryVisibility() {
-  const isCustom = elements.categorySelect.value === "自訂分類";
-  elements.customCategoryField.hidden = !isCustom;
-  if (!isCustom) {
-    elements.customCategoryInput.value = "";
-  }
-}
+function updateCategoryVisibility() {}
 
 function updateNeedWantVisibility() {
   const isExpense = getCurrentType() === "expense";

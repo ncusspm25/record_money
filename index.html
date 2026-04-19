@@ -267,6 +267,116 @@
         </section>
       </section>
 
+      <section class="tab-page" data-tab-page="sbd">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">SBD</p>
+            <h2>SBD 計算機與紀錄</h2>
+          </div>
+          <div class="page-badge accent-badge">訓練日 / 比賽日都能用</div>
+        </div>
+
+        <section class="surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">Attempt Planner</p>
+              <h3>三項開把與目標試算</h3>
+            </div>
+            <p class="surface-note">輸入目前最佳成績，先看總和與三把建議重量。</p>
+          </div>
+
+          <div class="form-grid sbd-lift-grid">
+            <label>
+              <span>深蹲 Squat</span>
+              <input id="sbdSquatInput" type="number" inputmode="decimal" min="0" step="0.5" placeholder="例如 180">
+            </label>
+            <label>
+              <span>臥推 Bench</span>
+              <input id="sbdBenchInput" type="number" inputmode="decimal" min="0" step="0.5" placeholder="例如 120">
+            </label>
+            <label>
+              <span>硬舉 Deadlift</span>
+              <input id="sbdDeadliftInput" type="number" inputmode="decimal" min="0" step="0.5" placeholder="例如 220">
+            </label>
+          </div>
+
+          <div id="sbdCalcSummary" class="overview-grid metric-grid sbd-summary-grid"></div>
+          <div id="sbdAttemptCards" class="sbd-attempt-grid"></div>
+        </section>
+
+        <section class="surface surface-hero">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">SBD Log</p>
+              <h3>新增一筆 SBD 紀錄</h3>
+            </div>
+            <p class="surface-note">先做一版本機紀錄，之後如果你喜歡，我們再加 PR、體重比和更多圖表。</p>
+          </div>
+
+          <form id="sbdRecordForm" class="entry-form">
+            <input id="sbdRecordId" type="hidden">
+
+            <div class="form-grid two-col">
+              <label>
+                <span>日期</span>
+                <input id="sbdRecordDate" type="date">
+              </label>
+              <label>
+                <span>體重 Bodyweight</span>
+                <input id="sbdBodyweightInput" type="number" inputmode="decimal" min="0" step="0.1" placeholder="例如 74.8">
+              </label>
+            </div>
+
+            <div class="form-grid sbd-lift-grid">
+              <label>
+                <span>深蹲</span>
+                <input id="sbdRecordSquat" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Kg">
+              </label>
+              <label>
+                <span>臥推</span>
+                <input id="sbdRecordBench" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Kg">
+              </label>
+              <label>
+                <span>硬舉</span>
+                <input id="sbdRecordDeadlift" type="number" inputmode="decimal" min="0" step="0.5" placeholder="Kg">
+              </label>
+            </div>
+
+            <div class="overview-grid metric-grid sbd-preview-grid">
+              <article class="mini-surface">
+                <span>三項總和</span>
+                <strong id="sbdRecordTotalPreview">--</strong>
+              </article>
+              <article class="mini-surface">
+                <span>最佳單項</span>
+                <strong id="sbdRecordBestLiftPreview">--</strong>
+              </article>
+            </div>
+
+            <label>
+              <span>訓練備註</span>
+              <textarea id="sbdRecordNote" rows="3" placeholder="例如：腰帶深蹲、停頓臥推、備賽第 6 週"></textarea>
+            </label>
+
+            <div class="form-actions">
+              <button id="sbdSaveRecordButton" type="submit" class="primary-button">儲存 SBD 紀錄</button>
+              <button id="sbdCancelEditButton" class="ghost-button" type="button" hidden>取消編輯</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">History</p>
+              <h3>最近 SBD 紀錄</h3>
+            </div>
+            <p class="surface-note">依日期整理，方便你回看每次總和、體重和備註。</p>
+          </div>
+          <div id="sbdRecordList" class="transaction-list empty-state">還沒有 SBD 紀錄</div>
+        </section>
+      </section>
+
       <section class="tab-page" data-tab-page="sync">
         <div class="page-heading">
           <div>
@@ -351,6 +461,10 @@
         <span class="nav-icon">≣</span>
         <span>記錄</span>
       </button>
+      <button class="tab-button" type="button" data-tab-target="sbd">
+        <span class="nav-icon">S</span>
+        <span>SBD</span>
+      </button>
       <button class="tab-button" type="button" data-tab-target="sync">
         <span class="nav-icon">☁</span>
         <span>雲端同步</span>
@@ -365,6 +479,7 @@
   <div id="celebrationOverlay" class="celebration-overlay" hidden>
     <div class="celebration-card">
       <img id="celebrationSticker" class="celebration-sticker" src="assets/celebration/celebrate-yuanbao.png" alt="元寶慶祝貼圖">
+      <p class="celebration-text">記帳完成，你真棒！</p>
     </div>
   </div>
 
