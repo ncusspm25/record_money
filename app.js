@@ -348,7 +348,7 @@ function subscribeToCloudTransactions(uid) {
       state.syncMode = "error";
       state.syncError = stringifyError(error);
       renderAuthPanel();
-      showToast("雲端同步失敗");
+      showToast(getFirestoreErrorMessage(error));
     }
   );
 }
@@ -453,7 +453,7 @@ async function handleSubmit(event) {
     if (!existing) showCelebration();
   } catch (error) {
     console.error(error);
-    showToast(state.user ? "雲端儲存失敗" : "本機儲存失敗");
+    showToast(state.user ? getFirestoreErrorMessage(error) : "本機儲存失敗");
   } finally {
     elements.saveButton.disabled = false;
   }
@@ -1118,7 +1118,7 @@ async function deleteTransaction(id) {
     showToast("紀錄已刪除");
   } catch (error) {
     console.error(error);
-    showToast(isCloudMode() ? "刪除雲端資料失敗" : "刪除本機資料失敗");
+    showToast(isCloudMode() ? getFirestoreErrorMessage(error) : "刪除本機資料失敗");
   }
 }
 
@@ -1237,7 +1237,7 @@ async function migrateLocalToCloud() {
     showToast("本機資料已同步到雲端");
   } catch (error) {
     console.error(error);
-    showToast("同步本機資料到雲端失敗");
+    showToast(getFirestoreErrorMessage(error));
   }
 }
 
@@ -1593,5 +1593,24 @@ function getAuthErrorMessage(error) {
       return "登入中斷：有另一個登入視窗正在處理";
     default:
       return `登入失敗：${stringifyError(error) || "請檢查 Firebase Authentication 設定"}`;
+  }
+}
+
+function getFirestoreErrorMessage(error) {
+  const code = error?.code || "";
+
+  switch (code) {
+    case "permission-denied":
+      return "雲端儲存失敗：Firestore 規則拒絕寫入，請確認規則已發布且登入帳號正確";
+    case "unauthenticated":
+      return "雲端儲存失敗：登入狀態已失效，請重新登入 Google";
+    case "unavailable":
+      return "雲端儲存失敗：目前連不到 Firestore，請稍後再試";
+    case "failed-precondition":
+      return "雲端儲存失敗：Firestore 尚未完成設定或資料庫未就緒";
+    case "resource-exhausted":
+      return "雲端儲存失敗：Firebase 免費額度可能已達上限";
+    default:
+      return `雲端儲存失敗：${stringifyError(error) || "請檢查 Firestore 設定"}`;
   }
 }
