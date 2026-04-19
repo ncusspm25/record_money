@@ -1046,7 +1046,9 @@ function startEdit(id) {
   elements.amountInput.value = String(item.amount);
   elements.dateInput.value = item.date;
   elements.noteInput.value = item.note;
-  elements.formTitle.textContent = "編輯記錄";
+  if (elements.formTitle) {
+    elements.formTitle.textContent = "編輯記錄";
+  }
   elements.cancelEditButton.hidden = false;
 
   const radio = elements.transactionForm.querySelector(`input[name="type"][value="${item.type}"]`);
@@ -1077,7 +1079,9 @@ function resetForm() {
   elements.transactionForm.reset();
   elements.transactionForm.querySelector('input[name="type"][value="expense"]').checked = true;
   elements.dateInput.value = formatDateInput(new Date());
-  elements.formTitle.textContent = "快速記一筆";
+  if (elements.formTitle) {
+    elements.formTitle.textContent = "快速記一筆";
+  }
   elements.cancelEditButton.hidden = true;
   const needDefault = elements.needWantField.querySelector('input[name="needWant"][value="need"]');
   if (needDefault) needDefault.checked = true;
