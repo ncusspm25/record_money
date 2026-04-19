@@ -536,6 +536,23 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(235, 126, 55, 0.12);
 }
 
+/* Fix date/month inputs on iOS Safari — prevent oversized rendering */
+input[type="date"],
+input[type="month"] {
+  padding: 12px 16px;
+  min-height: 0;
+  line-height: 1.4;
+  display: block;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="month"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  line-height: inherit;
+}
+
 .amount-label input {
   min-height: 76px;
   font-size: 2.3rem;
@@ -946,12 +963,20 @@ textarea:focus {
   .middle-grid,
   .metric-grid,
   .backup-grid,
-  .filters-grid,
   .form-grid.two-col,
   .pie-chart-row,
   .dragon-shell,
   .dragon-metrics {
     grid-template-columns: 1fr;
+  }
+
+  /* filters: date+type side by side, search full width */
+  .filters-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filters-grid label:last-child {
+    grid-column: 1 / -1;
   }
 
   .form-actions,

@@ -151,10 +151,10 @@ async function bootstrap() {
   const todayDate = formatDateInput(today);
 
   state.summaryMonth = currentMonth;
-  state.filters.date = todayDate;
+  state.filters.date = "";
 
   elements.summaryMonth.value = currentMonth;
-  elements.filterDate.value = todayDate;
+  elements.filterDate.value = "";
   elements.dateInput.value = todayDate;
 
   state.localTransactions = loadLocalTransactions();
