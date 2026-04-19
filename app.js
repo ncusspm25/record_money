@@ -1422,6 +1422,122 @@ function formatCurrency(value) {
   }).format(value);
 }
 
+function renderTransactions() {
+  const items = getFilteredTransactions();
+
+  if (items.length === 0) {
+    elements.transactionList.className = "transaction-list empty-state";
+    elements.transactionList.textContent = "沒有符合目前篩選條件的資料";
+    return;
+  }
+
+  elements.transactionList.className = "transaction-list";
+  elements.transactionList.innerHTML = "";
+
+  const fragment = document.createDocumentFragment();
+
+  for (const [dateValue, groupItems] of Object.entries(groupTransactionsByDate(items))) {
+    const section = document.createElement("section");
+    section.className = "transaction-group";
+
+    const heading = document.createElement("header");
+    heading.className = "transaction-group-heading";
+    heading.innerHTML = `
+      <h3 class="transaction-group-title">${escapeHtml(formatFullDateLabel(dateValue))}</h3>
+      <span class="transaction-group-count">${groupItems.length} 筆</span>
+    `;
+    section.appendChild(heading);
+
+    for (const item of groupItems) {
+      const node = elements.transactionItemTemplate.content.cloneNode(true);
+      const category = node.querySelector(".transaction-category");
+      const note = node.querySelector(".transaction-note");
+      const amount = node.querySelector(".transaction-amount");
+      const date = node.querySelector(".transaction-date");
+      const badge = node.querySelector(".transaction-badge");
+      const secondaryBadge = node.querySelector(".transaction-badge-secondary");
+      const editButton = node.querySelector(".edit-button");
+      const deleteButton = node.querySelector(".delete-button");
+
+      category.textContent = item.category;
+      note.textContent = item.note || "沒有備註";
+      amount.textContent = `${item.type === "expense" ? "-" : "+"}${formatCurrency(item.amount)}`;
+      amount.style.color = item.type === "expense" ? "var(--expense)" : "var(--income)";
+      date.hidden = true;
+      date.textContent = "";
+      badge.textContent = item.type === "expense" ? "支出" : "收入";
+      badge.classList.add(item.type);
+
+      if (item.type === "expense" && item.needWant) {
+        secondaryBadge.hidden = false;
+        secondaryBadge.textContent = item.needWant === "want" ? "想要" : "需要";
+        secondaryBadge.classList.toggle("want", item.needWant === "want");
+        secondaryBadge.classList.toggle("need", item.needWant !== "want");
+      } else {
+        secondaryBadge.hidden = true;
+        secondaryBadge.textContent = "";
+        secondaryBadge.classList.remove("want", "need");
+      }
+
+      editButton.addEventListener("click", () => startEdit(item.id));
+      deleteButton.addEventListener("click", () => void deleteTransaction(item.id));
+      section.appendChild(node);
+    }
+
+    fragment.appendChild(section);
+  }
+
+  elements.transactionList.appendChild(fragment);
+}
+
+function groupTransactionsByDate(items) {
+  return items.reduce((groups, item) => {
+    if (!groups[item.date]) {
+      groups[item.date] = [];
+    }
+
+    groups[item.date].push(item);
+    return groups;
+  }, {});
+}
+
+function showCelebration() {
+  const overlay = document.querySelector("#celebrationOverlay");
+  if (!overlay) return;
+
+  const sticker = overlay.querySelector("#celebrationSticker");
+  if (sticker) {
+    const nextImage = CELEBRATION_IMAGES[Math.floor(Math.random() * CELEBRATION_IMAGES.length)];
+    sticker.src = nextImage;
+  }
+
+  overlay.hidden = false;
+  const card = overlay.querySelector(".celebration-card");
+  card.style.animation = "none";
+  void card.offsetHeight;
+  card.style.animation = "";
+
+  if (sticker) {
+    sticker.style.animation = "none";
+    void sticker.offsetHeight;
+    sticker.style.animation = "";
+  }
+
+  setTimeout(() => {
+    overlay.hidden = true;
+  }, 2700);
+}
+
+function formatFullDateLabel(value) {
+  const date = new Date(`${value}T00:00:00`);
+  return new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  }).format(date);
+}
+
 function formatDisplayDate(value) {
   const date = new Date(`${value}T00:00:00`);
   return new Intl.DateTimeFormat("zh-TW", {
