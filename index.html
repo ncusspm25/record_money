@@ -38,42 +38,6 @@
 
     <main class="app-content">
       <section class="tab-page is-active" data-tab-page="quick">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">快速記帳</p>
-            <h2 id="formTitle">快速記一筆</h2>
-          </div>
-          <div class="page-badge">今天就先從這裡開始</div>
-        </div>
-
-        <div class="dragon-strip">
-          <div class="dragon-strip-metrics">
-            <span class="dragon-strip-label">連續記帳</span>
-            <strong id="dragonStreakValue">0 天</strong>
-          </div>
-          <div class="dragon-strip-progress">
-            <div class="dragon-progress-track" aria-hidden="true">
-              <div id="dragonProgressFill" class="dragon-progress-fill"></div>
-            </div>
-            <p id="dragonProgressText" class="surface-caption">距離進化還有 5 天</p>
-          </div>
-          <div class="dragon-strip-metrics">
-            <span class="dragon-strip-label">下一次進化</span>
-            <strong id="dragonMilestoneValue">5 天</strong>
-          </div>
-        </div>
-
-        <div class="quick-glance-grid">
-          <article class="mini-surface highlight-surface">
-            <span>今天已記錄</span>
-            <strong id="todayRecordCountValue">0 筆</strong>
-          </article>
-          <article class="mini-surface">
-            <span>今日支出</span>
-            <strong id="todayExpenseValue">$0</strong>
-          </article>
-        </div>
-
         <section class="surface surface-hero">
           <form id="transactionForm" class="entry-form">
             <input id="transactionId" type="hidden">
@@ -139,6 +103,34 @@
             </div>
           </form>
         </section>
+
+        <div class="quick-glance-grid">
+          <article class="mini-surface highlight-surface">
+            <span>今天已記錄</span>
+            <strong id="todayRecordCountValue">0 筆</strong>
+          </article>
+          <article class="mini-surface">
+            <span>今日支出</span>
+            <strong id="todayExpenseValue">$0</strong>
+          </article>
+        </div>
+
+        <div class="dragon-strip">
+          <div class="dragon-strip-metrics">
+            <span class="dragon-strip-label">連續記帳</span>
+            <strong id="dragonStreakValue">0 天</strong>
+          </div>
+          <div class="dragon-strip-progress">
+            <div class="dragon-progress-track" aria-hidden="true">
+              <div id="dragonProgressFill" class="dragon-progress-fill"></div>
+            </div>
+            <p id="dragonProgressText" class="surface-caption">距離進化還有 5 天</p>
+          </div>
+          <div class="dragon-strip-metrics">
+            <span class="dragon-strip-label">下一次進化</span>
+            <strong id="dragonMilestoneValue">5 天</strong>
+          </div>
+        </div>
       </section>
 
       <section class="tab-page" data-tab-page="overview">

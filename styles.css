@@ -63,7 +63,16 @@ button {
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 480px) {
+  .app-header .header-copy {
+    display: none;
+  }
+  .app-shell {
+    padding-top: calc(14px + env(safe-area-inset-top));
+  }
 }
 
 .header-dragon {
