@@ -104,23 +104,6 @@ button {
   gap: 12px;
 }
 
-.mascot-stack {
-  display: flex;
-  gap: 8px;
-}
-
-.mascot-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--card-line);
-  box-shadow: var(--shadow);
-}
-
 .app-content {
   position: relative;
 }
@@ -534,19 +517,6 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.form-pets {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 18px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--card-line);
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
 input,
 select,
 textarea {
@@ -841,26 +811,38 @@ textarea:focus {
 }
 
 .celebration-card {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  padding: 22px 26px;
-  border-radius: 26px;
-  background: rgba(32, 26, 22, 0.96);
-  border: 1px solid rgba(255, 237, 214, 0.08);
-  box-shadow: var(--shadow);
+  position: relative;
+  width: min(100vw - 48px, 520px);
+  min-height: 300px;
   animation: pop-in 280ms ease;
 }
 
-.chiikawa-svg {
-  width: 88px;
-  height: 102px;
+.celebration-sticker {
+  position: absolute;
+  width: clamp(130px, 28vw, 190px);
+  height: auto;
+  filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.35));
 }
 
-.celebration-label {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
+.celebration-sticker-main {
+  left: 50%;
+  top: 36px;
+  transform: translateX(-50%) rotate(-4deg);
+  animation: sticker-bob-main 1.8s ease-in-out;
+}
+
+.celebration-sticker-left {
+  left: 22px;
+  bottom: 12px;
+  transform: rotate(-10deg);
+  animation: sticker-bob-side-left 1.8s ease-in-out;
+}
+
+.celebration-sticker-right {
+  right: 18px;
+  bottom: 4px;
+  transform: rotate(9deg);
+  animation: sticker-bob-side-right 1.8s ease-in-out;
 }
 
 .toast {
@@ -901,6 +883,66 @@ textarea:focus {
   }
 }
 
+@keyframes sticker-bob-main {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(18px) scale(0.88) rotate(-7deg);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  55% {
+    transform: translateX(-50%) translateY(-8px) scale(1.02) rotate(-3deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1) rotate(-4deg);
+  }
+}
+
+@keyframes sticker-bob-side-left {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.84) rotate(-14deg);
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  60% {
+    transform: translateY(-10px) scale(1.02) rotate(-7deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(-10deg);
+  }
+}
+
+@keyframes sticker-bob-side-right {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.86) rotate(14deg);
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  60% {
+    transform: translateY(-12px) scale(1.02) rotate(6deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(9deg);
+  }
+}
+
 @keyframes dragon-float {
   0%,
   100% {
@@ -929,10 +971,6 @@ textarea:focus {
 
   .header-actions {
     align-items: stretch;
-  }
-
-  .mascot-stack {
-    align-self: flex-start;
   }
 
   .quick-glance-grid,
@@ -978,5 +1016,23 @@ textarea:focus {
   .dragon-head {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .celebration-card {
+    min-height: 360px;
+  }
+
+  .celebration-sticker-main {
+    top: 18px;
+  }
+
+  .celebration-sticker-left {
+    left: 8px;
+    bottom: 20px;
+  }
+
+  .celebration-sticker-right {
+    right: 8px;
+    bottom: 10px;
   }
 }

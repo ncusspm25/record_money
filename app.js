@@ -54,6 +54,12 @@ const DRAGON_STAGES = [
   },
 ];
 
+const CELEBRATION_IMAGES = [
+  "assets/celebration/celebrate-tea-party.png",
+  "assets/celebration/celebrate-bunny-coin.png",
+  "assets/celebration/celebrate-checklist.png",
+];
+
 const state = {
   transactions: [],
   localTransactions: [],
@@ -428,7 +434,6 @@ async function handleSubmit(event) {
     renderCategoryOptions();
     render();
     resetForm();
-    showToast(existing ? "紀錄已更新" : "已新增記錄");
     const currentDragon = getDragonStatus(state.transactions);
     const leveledUp = !existing && currentDragon.stage > previousDragonStage;
     if (leveledUp) {
@@ -703,11 +708,23 @@ function renderPieChart(expenseByCategory, totalExpense) {
 function showCelebration() {
   const overlay = document.querySelector("#celebrationOverlay");
   if (!overlay) return;
+
+  const stickerImages = Array.from(overlay.querySelectorAll(".celebration-sticker"));
+  const order = [...CELEBRATION_IMAGES].sort(() => Math.random() - 0.5);
+  stickerImages.forEach((image, index) => {
+    image.src = order[index % order.length];
+  });
+
   overlay.hidden = false;
   const card = overlay.querySelector(".celebration-card");
   card.style.animation = "none";
   void card.offsetHeight;
   card.style.animation = "";
+  for (const sticker of stickerImages) {
+    sticker.style.animation = "none";
+    void sticker.offsetHeight;
+    sticker.style.animation = "";
+  }
   setTimeout(() => { overlay.hidden = true; }, 2700);
 }
 
