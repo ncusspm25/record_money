@@ -109,7 +109,6 @@ const elements = {
   dragonStatHp: document.querySelector("#dragonStatHp"),
   dragonStatAtk: document.querySelector("#dragonStatAtk"),
   dragonStatDef: document.querySelector("#dragonStatDef"),
-  dragonStatDays: document.querySelector("#dragonStatDays"),
   dragonStatLevel: document.querySelector("#dragonStatLevel"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
@@ -825,8 +824,7 @@ function renderDragonCompanion() {
   if (elements.dragonStatHp) elements.dragonStatHp.textContent = status.hp;
   if (elements.dragonStatAtk) elements.dragonStatAtk.textContent = status.atk;
   if (elements.dragonStatDef) elements.dragonStatDef.textContent = status.def;
-  if (elements.dragonStatDays) elements.dragonStatDays.textContent = status.streak;
-  if (elements.dragonStatLevel) elements.dragonStatLevel.textContent = status.level;
+  if (elements.dragonStatLevel) elements.dragonStatLevel.textContent = `Level ${status.level}`;
 }
 
 function getDragonStatus(items) {
