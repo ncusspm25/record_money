@@ -65,7 +65,7 @@ const state = {
   localTransactions: [],
   activeTab: "quick",
   filters: {
-    month: "",
+    date: "",
     type: "all",
     query: "",
   },
@@ -117,7 +117,7 @@ const elements = {
   monthlyPulseValue: document.querySelector("#monthlyPulseValue"),
   categoryChart: document.querySelector("#categoryChart"),
   pieChartEmpty: document.querySelector("#pieChartEmpty"),
-  filterMonth: document.querySelector("#filterMonth"),
+  filterDate: document.querySelector("#filterDate"),
   filterType: document.querySelector("#filterType"),
   filterQuery: document.querySelector("#filterQuery"),
   clearFiltersButton: document.querySelector("#clearFiltersButton"),
@@ -151,10 +151,10 @@ async function bootstrap() {
   const todayDate = formatDateInput(today);
 
   state.summaryMonth = currentMonth;
-  state.filters.month = currentMonth;
+  state.filters.date = todayDate;
 
   elements.summaryMonth.value = currentMonth;
-  elements.filterMonth.value = currentMonth;
+  elements.filterDate.value = todayDate;
   elements.dateInput.value = todayDate;
 
   state.localTransactions = loadLocalTransactions();
@@ -200,8 +200,8 @@ function attachEventListeners() {
     renderSummary();
   });
 
-  elements.filterMonth.addEventListener("input", (event) => {
-    state.filters.month = event.target.value;
+  elements.filterDate.addEventListener("input", (event) => {
+    state.filters.date = event.target.value;
     persistSettings();
     renderTransactions();
   });
@@ -219,10 +219,10 @@ function attachEventListeners() {
   });
 
   elements.clearFiltersButton.addEventListener("click", () => {
-    state.filters.month = "";
+    state.filters.date = "";
     state.filters.type = "all";
     state.filters.query = "";
-    elements.filterMonth.value = "";
+    elements.filterDate.value = "";
     elements.filterType.value = "all";
     elements.filterQuery.value = "";
     persistSettings();
@@ -1007,7 +1007,7 @@ function getSyncModeMeta() {
 function getFilteredTransactions() {
   let items = [...state.transactions].sort(compareTransactions);
 
-  items = filterByMonth(items, state.filters.month);
+  items = filterByDate(items, state.filters.date);
 
   if (state.filters.type !== "all") {
     items = items.filter((item) => item.type === state.filters.type);
@@ -1265,6 +1265,14 @@ function filterByMonth(items, month) {
   return items.filter((item) => item.date.startsWith(month));
 }
 
+function filterByDate(items, date) {
+  if (!date) {
+    return items;
+  }
+
+  return items.filter((item) => item.date === date);
+}
+
 function groupExpenseByCategory(items) {
   const totals = new Map();
 
@@ -1313,12 +1321,12 @@ function hydrateSettings() {
 
     state.summaryMonth = settings.summaryMonth || state.summaryMonth;
     state.activeTab = settings.activeTab || state.activeTab;
-    state.filters.month = settings.filters?.month ?? state.filters.month;
+    state.filters.date = settings.filters?.date ?? state.filters.date;
     state.filters.type = settings.filters?.type || state.filters.type;
     state.filters.query = settings.filters?.query || state.filters.query;
 
     elements.summaryMonth.value = state.summaryMonth;
-    elements.filterMonth.value = state.filters.month;
+    elements.filterDate.value = state.filters.date;
     elements.filterType.value = state.filters.type;
     elements.filterQuery.value = state.filters.query;
   } catch (error) {
