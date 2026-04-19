@@ -536,21 +536,20 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(235, 126, 55, 0.12);
 }
 
-/* Fix date/month inputs on iOS Safari — prevent oversized rendering */
+/* Fix date/month inputs on iOS Safari */
 input[type="date"],
 input[type="month"] {
-  padding: 12px 16px;
-  min-height: 0;
-  line-height: 1.4;
-  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 14px 16px;
+  height: 52px;
+  line-height: 1;
 }
 
 input[type="date"]::-webkit-date-and-time-value,
 input[type="month"]::-webkit-date-and-time-value {
   text-align: left;
   margin: 0;
-  padding: 0;
-  line-height: inherit;
 }
 
 .amount-label input {
