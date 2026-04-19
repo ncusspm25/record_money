@@ -76,18 +76,58 @@ button {
 }
 
 .header-dragon {
-  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-dragon-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-dragon-footer {
+  display: flex;
   align-items: center;
   gap: 8px;
-  width: 120px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.header-dragon-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: right;
+}
+
+.header-dragon-stats span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.header-dragon-stats strong {
+  color: var(--primary-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.header-dragon-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
 }
 
 .header-dragon-orbit {
   position: absolute;
-  inset: 10px;
+  inset: 6px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 171, 90, 0.22), rgba(255, 116, 38, 0.05) 60%, transparent 78%);
   filter: blur(8px);
@@ -97,11 +137,19 @@ button {
 .header-dragon-img {
   position: relative;
   z-index: 1;
-  width: 100px;
-  height: 100px;
+  width: 84px;
+  height: 84px;
   object-fit: contain;
-  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4));
   animation: dragon-float 3.6s ease-in-out infinite;
+}
+
+.dragon-level-badge {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.04em;
 }
 
 .dragon-strip {

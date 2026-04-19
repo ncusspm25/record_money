@@ -23,14 +23,27 @@
       <div class="brand-block">
         <p class="eyebrow">Pocket Ledger</p>
         <h1>口袋記帳</h1>
-        <p class="header-copy">打開就記，統計同步備份都在後面。</p>
+        <p class="header-copy">Save Wisely, Live Happily<br>Created by Enzo Ho</p>
         <button id="installButton" class="secondary-button install-button" hidden>安裝到主畫面</button>
       </div>
       <div class="header-dragon" id="dragonCompanionCard" data-stage="1">
-        <div class="header-dragon-orbit" aria-hidden="true"></div>
-        <img id="dragonStageImage" class="header-dragon-img"
-             src="assets/dragons/dragon-stage-1.png" alt="陪你記帳的小火龍">
-        <span id="dragonStageBadge" class="mode-badge dragon-badge">初始型態</span>
+        <div class="header-dragon-body">
+          <div class="header-dragon-stats">
+            <span>HP <strong id="dragonStatHp">50</strong></span>
+            <span>Atk <strong id="dragonStatAtk">20</strong></span>
+            <span>Def <strong id="dragonStatDef">10</strong></span>
+            <span>Days <strong id="dragonStatDays">0</strong></span>
+          </div>
+          <div class="header-dragon-visual">
+            <div class="header-dragon-orbit" aria-hidden="true"></div>
+            <img id="dragonStageImage" class="header-dragon-img"
+                 src="assets/dragons/dragon-stage-1.png" alt="陪你記帳的小火龍">
+          </div>
+        </div>
+        <div class="header-dragon-footer">
+          <span id="dragonStageBadge" class="mode-badge dragon-badge">初始型態</span>
+          <span id="dragonStatLevel" class="dragon-level-badge">Level 1</span>
+        </div>
         <span id="dragonStageName" hidden>小火龍</span>
         <p id="dragonStageHint" hidden></p>
       </div>

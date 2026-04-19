@@ -37,6 +37,7 @@ const DRAGON_STAGES = [
     name: "小火龍",
     badge: "初始型態",
     image: "assets/dragons/dragon-stage-1.png",
+    hp: 50, atk: 20, def: 10, level: 1,
   },
   {
     stage: 2,
@@ -44,6 +45,7 @@ const DRAGON_STAGES = [
     name: "展翼火龍",
     badge: "5 天進化",
     image: "assets/dragons/dragon-stage-2.png",
+    hp: 120, atk: 55, def: 35, level: 2,
   },
   {
     stage: 3,
@@ -51,6 +53,7 @@ const DRAGON_STAGES = [
     name: "終焰聖龍",
     badge: "30 天最終型態",
     image: "assets/dragons/dragon-stage-3.png",
+    hp: 250, atk: 120, def: 80, level: 3,
   },
 ];
 
@@ -103,6 +106,11 @@ const elements = {
   dragonMilestoneValue: document.querySelector("#dragonMilestoneValue"),
   dragonProgressFill: document.querySelector("#dragonProgressFill"),
   dragonProgressText: document.querySelector("#dragonProgressText"),
+  dragonStatHp: document.querySelector("#dragonStatHp"),
+  dragonStatAtk: document.querySelector("#dragonStatAtk"),
+  dragonStatDef: document.querySelector("#dragonStatDef"),
+  dragonStatDays: document.querySelector("#dragonStatDays"),
+  dragonStatLevel: document.querySelector("#dragonStatLevel"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -814,6 +822,11 @@ function renderDragonCompanion() {
   elements.dragonMilestoneValue.textContent = status.nextMilestoneLabel;
   elements.dragonProgressFill.style.width = `${status.progressPercent}%`;
   elements.dragonProgressText.textContent = status.progressText;
+  if (elements.dragonStatHp) elements.dragonStatHp.textContent = status.hp;
+  if (elements.dragonStatAtk) elements.dragonStatAtk.textContent = status.atk;
+  if (elements.dragonStatDef) elements.dragonStatDef.textContent = status.def;
+  if (elements.dragonStatDays) elements.dragonStatDays.textContent = status.streak;
+  if (elements.dragonStatLevel) elements.dragonStatLevel.textContent = status.level;
 }
 
 function getDragonStatus(items) {
