@@ -133,6 +133,10 @@ const elements = {
   importInput: document.querySelector("#importInput"),
   toast: document.querySelector("#toast"),
   installButton: document.querySelector("#installButton"),
+  installBadge: document.querySelector("#installBadge"),
+  installDescription: document.querySelector("#installDescription"),
+  installSteps: document.querySelector("#installSteps"),
+  downloadShortcutButton: document.querySelector("#downloadShortcutButton"),
   syncModeBadge: document.querySelector("#syncModeBadge"),
   accountStatus: document.querySelector("#accountStatus"),
   accountDetail: document.querySelector("#accountDetail"),
@@ -155,9 +159,13 @@ async function bootstrap() {
   const today = new Date();
   const currentMonth = formatMonthInput(today);
   const todayDate = formatDateInput(today);
+  const initialTab = getInitialTabFromUrl();
 
   state.summaryMonth = currentMonth;
   state.filters.date = "";
+  if (initialTab) {
+    state.activeTab = initialTab;
+  }
 
   elements.summaryMonth.value = currentMonth;
   elements.filterDate.value = "";
@@ -242,11 +250,12 @@ function attachEventListeners() {
   elements.signInButton.addEventListener("click", handleGoogleSignIn);
   elements.signOutButton.addEventListener("click", handleSignOut);
   elements.migrateButton.addEventListener("click", migrateLocalToCloud);
+  elements.downloadShortcutButton?.addEventListener("click", downloadWindowsShortcut);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     state.installPrompt = event;
-    elements.installButton.hidden = false;
+    renderInstallExperience();
   });
 
   elements.installButton.addEventListener("click", async () => {
@@ -260,8 +269,15 @@ function attachEventListeners() {
   }
 
   window.addEventListener("appinstalled", () => {
+    state.installPrompt = null;
     elements.installButton.hidden = true;
+    renderInstallExperience();
     showToast("已安裝到主畫面");
+  });
+
+  const displayModeQuery = window.matchMedia?.("(display-mode: standalone)");
+  displayModeQuery?.addEventListener?.("change", () => {
+    renderInstallExperience();
   });
 }
 
@@ -517,6 +533,7 @@ function render() {
   renderSummary();
   renderTransactions();
   renderAuthPanel();
+  renderInstallExperience();
   renderBackupNote();
   applyActiveTab();
 }
@@ -1442,16 +1459,196 @@ function applyActiveTab() {
   }
 }
 
+function getInstallContext() {
+  const userAgent = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const isIOS =
+    /iPad|iPhone|iPod/.test(userAgent) ||
+    (platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(userAgent);
+  const isWindows = /Windows/i.test(userAgent);
+  const isEdge = /Edg/i.test(userAgent);
+  const isChrome = /Chrome|CriOS/i.test(userAgent) && !isEdge;
+  const isSafari =
+    /Safari/i.test(userAgent) && !/Chrome|CriOS|Edg|FxiOS|Firefox|OPR/i.test(userAgent);
+  const isStandalone =
+    window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+
+  return {
+    isIOS,
+    isAndroid,
+    isWindows,
+    isSafari,
+    isChrome,
+    isEdge,
+    isStandalone,
+    canPromptInstall: Boolean(state.installPrompt),
+  };
+}
+
+function getInstallUi(context) {
+  if (context.isStandalone) {
+    return {
+      badge: "已安裝",
+      variant: "cloud",
+      buttonLabel: "已安裝",
+      description: "這台裝置已經可以從主畫面、桌面或開始選單直接開啟元寶記帳。",
+      steps: [
+        "之後直接從桌面或主畫面的圖示開啟即可。",
+        "如果你換了新版本又看不到圖示，刪掉舊捷徑後重新加入一次就好。",
+      ],
+      showHeaderButton: false,
+      showInlineButton: false,
+      showWindowsShortcut: false,
+    };
+  }
+
+  if (context.isIOS) {
+    return {
+      badge: "iPhone",
+      variant: "warning",
+      buttonLabel: context.isSafari ? "加入主畫面" : "改用 Safari",
+      description: context.isSafari
+        ? "iPhone 不允許網站直接建立桌面捷徑，但可以透過 Safari 的「加入主畫面」放到桌面。"
+        : "請先改用 Safari 開啟這個網址，才能把元寶記帳加入 iPhone 主畫面。",
+      steps: context.isSafari
+        ? [
+            "請用 Safari 開啟這個網址。",
+            "點下方分享按鈕。",
+            "往下選「加入主畫面」。",
+            "點右上角「加入」，之後就能從桌面直接開啟。",
+          ]
+        : [
+            "先在目前瀏覽器把網址複製起來。",
+            "改用 Safari 開啟這個網址。",
+            "打開分享選單後選「加入主畫面」。",
+          ],
+      showHeaderButton: true,
+      showInlineButton: true,
+      showWindowsShortcut: false,
+    };
+  }
+
+  if (context.canPromptInstall) {
+    return {
+      badge: context.isWindows ? "Windows 可安裝" : "可安裝",
+      variant: "warning",
+      buttonLabel: "安裝 App",
+      description: "這台裝置支援直接把網站安裝成 App，安裝後可從桌面或開始選單開啟。",
+      steps: [
+        "按下「安裝 App」。",
+        "在瀏覽器跳出的安裝視窗按確認。",
+        "安裝完成後就能像一般 App 一樣從桌面或開始選單直接開啟。",
+      ],
+      showHeaderButton: true,
+      showInlineButton: true,
+      showWindowsShortcut: context.isWindows,
+    };
+  }
+
+  if (context.isWindows) {
+    return {
+      badge: "Windows",
+      variant: "local",
+      buttonLabel: "查看安裝步驟",
+      description: "如果瀏覽器沒有自動跳出安裝視窗，可以在 Edge 或 Chrome 裡手動安裝，或先下載桌面捷徑。",
+      steps: [
+        "請用 Edge 或 Chrome 開啟這個網站。",
+        "點右上角選單，找「安裝此網站為應用程式」或「應用程式」。",
+        "確認安裝後，就能從桌面與開始選單直接開啟。",
+      ],
+      showHeaderButton: true,
+      showInlineButton: true,
+      showWindowsShortcut: true,
+    };
+  }
+
+  return {
+    badge: context.isAndroid ? "Android" : "瀏覽器",
+    variant: "local",
+    buttonLabel: "查看安裝步驟",
+    description: "這台裝置目前沒有自動安裝提示，你仍可以使用瀏覽器的安裝或加入主畫面功能。",
+    steps: [
+      "先用支援 PWA 的瀏覽器開啟這個網站。",
+      "在瀏覽器選單中找「安裝應用程式」或「加入主畫面」。",
+      "安裝後就能像一般 App 一樣從桌面開啟。",
+    ],
+    showHeaderButton: true,
+    showInlineButton: true,
+    showWindowsShortcut: false,
+  };
+}
+
+function renderInstallExperience() {
+  if (!elements.installDescription || !elements.installSteps || !elements.installBadge) {
+    return;
+  }
+
+  const context = getInstallContext();
+  const ui = getInstallUi(context);
+
+  elements.installBadge.textContent = ui.badge;
+  elements.installBadge.className = `mode-badge ${ui.variant}`;
+  elements.installDescription.textContent = ui.description;
+  elements.installSteps.innerHTML = ui.steps
+    .map((step) => `<li>${escapeHtml(step)}</li>`)
+    .join("");
+
+  elements.downloadShortcutButton.hidden = !ui.showWindowsShortcut;
+  elements.installButton.hidden = !ui.showHeaderButton;
+  elements.installButton.textContent = ui.buttonLabel;
+
+  for (const trigger of elements.installTriggers) {
+    trigger.hidden = !ui.showInlineButton;
+    trigger.textContent = ui.buttonLabel;
+  }
+}
+
+function scrollToInstallGuide() {
+  setActiveTab("sync");
+  requestAnimationFrame(() => {
+    elements.installDescription?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
 async function handleInstall() {
+  const context = getInstallContext();
+
+  if (context.isStandalone) {
+    showToast("已安裝，可直接從桌面或主畫面開啟");
+    return;
+  }
+
   if (!state.installPrompt) {
-    showToast("目前這台裝置沒有出現安裝提示");
+    scrollToInstallGuide();
+    if (context.isIOS) {
+      showToast(context.isSafari ? "請照畫面步驟加入主畫面" : "請改用 Safari 再加入主畫面");
+      return;
+    }
+
+    if (context.isWindows) {
+      showToast("請照畫面步驟安裝，或下載 Windows 捷徑");
+      return;
+    }
+
+    showToast("請照畫面步驟安裝 App");
     return;
   }
 
   state.installPrompt.prompt();
   await state.installPrompt.userChoice;
   state.installPrompt = null;
-  elements.installButton.hidden = true;
+  renderInstallExperience();
+}
+
+function downloadWindowsShortcut() {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+
+  const content = ["[InternetShortcut]", `URL=${url.toString()}`].join("\r\n");
+  downloadFile("YuanbaoLedger.url", content, "application/internet-shortcut");
+  showToast("已下載 Windows 捷徑，放到桌面後即可直接開啟");
 }
 
 function isCloudMode() {
@@ -1558,6 +1755,15 @@ function getCurrentType() {
   return elements.transactionForm.querySelector('input[name="type"]:checked')?.value === "income"
     ? "income"
     : "expense";
+}
+
+function getInitialTabFromUrl() {
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  if (!tab) {
+    return "";
+  }
+
+  return elements.tabPages.some((page) => page.dataset.tabPage === tab) ? tab : "";
 }
 
 function getSelectedCategory() {

@@ -618,7 +618,8 @@ input[type="month"]::-webkit-date-and-time-value {
 
 .form-actions,
 .account-actions,
-.backup-actions {
+.backup-actions,
+.install-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -809,6 +810,30 @@ input[type="month"]::-webkit-date-and-time-value {
 .sync-surface h3 {
   font-size: 1.25rem;
   line-height: 1.35;
+}
+
+.install-assistant {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.install-assistant-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.install-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text);
+}
+
+.install-steps li {
+  line-height: 1.6;
 }
 
 .mode-badge.local {
@@ -1037,6 +1062,7 @@ input[type="month"]::-webkit-date-and-time-value {
   .form-actions,
   .account-actions,
   .backup-actions,
+  .install-actions,
   .inline-install-button {
     width: 100%;
   }
@@ -1044,6 +1070,7 @@ input[type="month"]::-webkit-date-and-time-value {
   .form-actions > *,
   .account-actions > *,
   .backup-actions > *,
+  .install-actions > *,
   .file-button,
   .file-button span {
     width: 100%;

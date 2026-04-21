@@ -1,12 +1,17 @@
 {
+  "id": "./",
   "name": "元寶記帳",
   "short_name": "元寶記帳",
-  "description": "個人用、可離線的手機記帳 App",
+  "description": "可在手機與桌面安裝的個人記帳 App",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f1e8",
-  "theme_color": "#f4ede1",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#14110f",
+  "theme_color": "#13100e",
+  "orientation": "portrait-primary",
   "lang": "zh-Hant",
+  "categories": ["finance", "productivity", "utilities"],
   "icons": [
     {
       "src": "assets/icons/icon-192.png",
@@ -25,6 +30,26 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "快速記一筆",
+      "short_name": "快速記帳",
+      "description": "直接打開快速記帳頁",
+      "url": "./?tab=quick"
+    },
+    {
+      "name": "本月概況",
+      "short_name": "本月概況",
+      "description": "直接打開本月統計",
+      "url": "./?tab=overview"
+    },
+    {
+      "name": "雲端同步",
+      "short_name": "雲端同步",
+      "description": "直接查看登入與同步狀態",
+      "url": "./?tab=sync"
     }
   ]
 }

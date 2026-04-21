@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#13100e">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="元寶記帳">
@@ -298,6 +299,18 @@
           </div>
           <p class="surface-note">iPhone 用 Safari 的「加入主畫面」，Android 用 Chrome 的「安裝應用程式」。安裝後會更像真正的 app。</p>
           <button class="secondary-button inline-install-button" type="button" data-install-trigger>安裝到主畫面</button>
+          <div class="install-assistant">
+            <div class="install-assistant-head">
+              <span id="installBadge" class="mode-badge local">準備中</span>
+            </div>
+            <p id="installDescription" class="surface-note">正在偵測這台裝置可用的安裝方式。</p>
+            <ol id="installSteps" class="install-steps">
+              <li>正在載入安裝步驟...</li>
+            </ol>
+            <div class="install-actions">
+              <button id="downloadShortcutButton" class="ghost-button" type="button" hidden>下載 Windows 捷徑</button>
+            </div>
+          </div>
         </section>
       </section>
 
