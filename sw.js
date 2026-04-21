@@ -1,4 +1,4 @@
-const CACHE_NAME = "pocket-ledger-v10";
+const CACHE_NAME = "pocket-ledger-v12";
 const ASSETS = [
   "./",
   "./index.html",
@@ -41,8 +41,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const requestUrl = new URL(event.request.url);
+  const shouldPreferNetwork =
+    event.request.mode === "navigate" ||
+    (requestUrl.origin === self.location.origin &&
+      ["/app.js", "/styles.css", "/firebase-config.js", "/manifest.webmanifest"].some((suffix) =>
+        requestUrl.pathname.endsWith(suffix)
+      ));
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    (shouldPreferNetwork ? Promise.resolve(null) : caches.match(event.request)).then((cached) => {
       if (cached) {
         return cached;
       }
@@ -53,7 +61,10 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
           return response;
         })
-        .catch(() => caches.match("./index.html"));
+        .catch(async () => {
+          const fallback = await caches.match(event.request);
+          return fallback || caches.match("./index.html");
+        });
     })
   );
 });

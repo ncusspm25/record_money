@@ -73,7 +73,7 @@ const state = {
   summaryMonth: "",
   installPrompt: null,
   user: null,
-  syncMode: "local",
+  syncMode: "initializing",
   syncError: "",
   firebaseReady: false,
   firebase: null,
@@ -147,6 +147,7 @@ const elements = {
 };
 
 let toastTimer = null;
+let firebaseInitPromise = null;
 
 void bootstrap();
 
@@ -174,7 +175,8 @@ async function bootstrap() {
   render();
   applyActiveTab();
   registerServiceWorker();
-  await initFirebase();
+  firebaseInitPromise = initFirebase();
+  await firebaseInitPromise;
 }
 
 function attachEventListeners() {
@@ -352,8 +354,21 @@ function subscribeToCloudTransactions(uid) {
 }
 
 async function handleGoogleSignIn() {
+  if (firebaseInitPromise) {
+    try {
+      await firebaseInitPromise;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  if (state.syncMode === "config-missing") {
+    showToast("這個版本尚未載入 Firebase 設定，請重新整理後再試一次");
+    return;
+  }
+
   if (!state.firebaseReady || !state.firebase) {
-    showToast("請先把 firebase-config.js 換成你的 Firebase 設定");
+    showToast("Firebase 還在初始化，請等一下再試");
     return;
   }
 
@@ -630,7 +645,9 @@ function groupTransactionsByDate(items) {
 
 function renderCategoryOptions() {
   const type = getCurrentType();
-  const categories = DEFAULT_CATEGORIES[type];
+  const categories = DEFAULT_CATEGORIES[type].filter(
+    (category) => category !== "自訂分類" || (elements.customCategoryField && elements.customCategoryInput)
+  );
   const selected = elements.categorySelect.value;
   elements.categorySelect.innerHTML = [
     '<option value="">請選擇分類</option>',
@@ -781,6 +798,9 @@ function renderAuthPanel() {
   elements.signInButton.hidden = meta.hideSignIn;
   elements.signOutButton.hidden = meta.hideSignOut;
   elements.migrateButton.hidden = meta.hideMigrate;
+  elements.signInButton.disabled = state.syncMode === "initializing" || state.syncMode === "signing-in";
+  elements.signOutButton.disabled = state.syncMode === "signing-in";
+  elements.migrateButton.disabled = state.syncMode === "syncing";
 
   if (!meta.hideMigrate) {
     elements.migrateButton.textContent = `把本機 ${state.localTransactions.length} 筆資料同步到雲端`;
@@ -933,6 +953,17 @@ function getSyncModeMeta() {
   const hasLocalBackup = state.localTransactions.length > 0;
 
   switch (state.syncMode) {
+    case "initializing":
+      return {
+        badge: "準備中",
+        variant: "warning",
+        status: "正在連線雲端服務。",
+        detail: "第一次開啟或剛更新版本時，Firebase 會先初始化一下。",
+        hint: "如果這個狀態停太久，重新整理一次通常就會恢復正常。",
+        hideSignIn: true,
+        hideSignOut: true,
+        hideMigrate: true,
+      };
     case "config-missing":
       return {
         badge: "待設定 Firebase",
@@ -1532,12 +1563,16 @@ function getCurrentType() {
 function getSelectedCategory() {
   const selected = elements.categorySelect.value;
   if (selected === "自訂分類") {
-    return elements.customCategoryInput.value.trim();
+    return elements.customCategoryInput?.value.trim() || "";
   }
   return selected.trim();
 }
 
 function updateCategoryVisibility() {
+  if (!elements.customCategoryField || !elements.customCategoryInput) {
+    return;
+  }
+
   const isCustom = elements.categorySelect.value === "自訂分類";
   elements.customCategoryField.hidden = !isCustom;
   if (!isCustom) {
