@@ -29,33 +29,48 @@ const DEFAULT_CATEGORIES = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_ACTIVE_PETS = 6;
 
-const DRAGON_STAGES = [
+const PET_RELEASES = [
   {
-    stage: 1,
-    minDays: 0,
+    id: "pet-2026-04-charmander",
+    month: "2026-04",
     name: "小火龍",
-    badge: "初始型態",
+    badge: "4 月限定夥伴",
     image: "assets/dragons/dragon-stage-1.png",
-    hp: 50, atk: 20, def: 10, level: 1,
+    hp: 50,
+    atk: 20,
+    def: 10,
+    level: 14,
   },
   {
-    stage: 2,
-    minDays: 5,
-    name: "展翼火龍",
-    badge: "5 天進化",
-    image: "assets/dragons/dragon-stage-2.png",
-    hp: 120, atk: 55, def: 35, level: 2,
+    id: "pet-2026-05-turtwig",
+    month: "2026-05",
+    name: "草苗龜",
+    badge: "5 月限定夥伴",
+    image: "assets/pets/pet-2026-05-grass.png",
+    hp: 72,
+    atk: 48,
+    def: 65,
+    level: 18,
   },
   {
-    stage: 3,
-    minDays: 30,
-    name: "終焰聖龍",
-    badge: "30 天最終型態",
-    image: "assets/dragons/dragon-stage-3.png",
-    hp: 250, atk: 120, def: 80, level: 3,
+    id: "pet-2026-06-greninja",
+    month: "2026-06",
+    name: "甲賀忍蛙",
+    badge: "6 月限定夥伴",
+    image: "assets/pets/pet-2026-06-frog.png",
+    hp: 88,
+    atk: 95,
+    def: 67,
+    level: 24,
   },
 ];
+
+const NEXT_PET_PLACEHOLDER = {
+  month: "2026-07",
+  name: "待公布",
+};
 
 const CELEBRATION_IMAGES = [
   "assets/celebration/celebrate-yuanbao.png",
@@ -64,13 +79,17 @@ const CELEBRATION_IMAGES = [
 const state = {
   transactions: [],
   localTransactions: [],
+  petTeamOrder: [],
+  equippedPetId: "",
   activeTab: "quick",
   filters: {
     date: "",
     type: "all",
     query: "",
+    listLimit: 50,
   },
   summaryMonth: "",
+  monthlyBudget: 0,
   installPrompt: null,
   user: null,
   syncMode: "initializing",
@@ -108,6 +127,20 @@ const elements = {
   dragonStatAtk: document.querySelector("#dragonStatAtk"),
   dragonStatDef: document.querySelector("#dragonStatDef"),
   dragonStatLevel: document.querySelector("#dragonStatLevel"),
+  copyLastButton: document.querySelector("#copyLastButton"),
+  monthlyBudgetInput: document.querySelector("#monthlyBudgetInput"),
+  budgetProgressWrap: document.querySelector("#budgetProgressWrap"),
+  budgetProgressFill: document.querySelector("#budgetProgressFill"),
+  budgetProgressText: document.querySelector("#budgetProgressText"),
+  summaryInProgressBadge: document.querySelector("#summaryInProgressBadge"),
+  loadMoreButton: document.querySelector("#loadMoreButton"),
+  petCurrentMonth: document.querySelector("#petCurrentMonth"),
+  petSelect: document.querySelector("#petSelect"),
+  petCollectionCount: document.querySelector("#petCollectionCount"),
+  petTeamCount: document.querySelector("#petTeamCount"),
+  petBoxCount: document.querySelector("#petBoxCount"),
+  petTeamList: document.querySelector("#petTeamList"),
+  petBoxList: document.querySelector("#petBoxList"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -209,6 +242,52 @@ function attachEventListeners() {
     radio.addEventListener("change", () => updateNeedWantToggle());
   }
 
+  elements.amountInput.addEventListener("input", () => {
+    const v = Number(elements.amountInput.value);
+    elements.amountInput.classList.toggle("is-invalid", elements.amountInput.value !== "" && v <= 0);
+  });
+
+  if (elements.copyLastButton) {
+    elements.copyLastButton.addEventListener("click", copyLastEntry);
+  }
+
+  for (const btn of document.querySelectorAll("[data-quick-date]")) {
+    btn.addEventListener("click", () => {
+      const range = btn.dataset.quickDate;
+      const today = formatDateInput(new Date());
+      if (range === "today") {
+        state.filters.date = today;
+        elements.filterDate.value = today;
+      } else if (range === "week") {
+        const d = new Date(); d.setDate(d.getDate() - 6);
+        state.filters.date = formatDateInput(d);
+        elements.filterDate.value = state.filters.date;
+      } else if (range === "month") {
+        const d = new Date(); d.setDate(d.getDate() - 29);
+        state.filters.date = formatDateInput(d);
+        elements.filterDate.value = state.filters.date;
+      }
+      state.filters.listLimit = 50;
+      persistSettings();
+      renderTransactions();
+    });
+  }
+
+  if (elements.monthlyBudgetInput) {
+    elements.monthlyBudgetInput.addEventListener("input", () => {
+      state.monthlyBudget = Math.max(0, Number(elements.monthlyBudgetInput.value) || 0);
+      persistSettings();
+      renderSummary();
+    });
+  }
+
+  if (elements.loadMoreButton) {
+    elements.loadMoreButton.addEventListener("click", () => {
+      state.filters.listLimit += 50;
+      renderTransactions();
+    });
+  }
+
   elements.summaryMonth.addEventListener("input", (event) => {
     state.summaryMonth = event.target.value;
     persistSettings();
@@ -237,12 +316,17 @@ function attachEventListeners() {
     state.filters.date = "";
     state.filters.type = "all";
     state.filters.query = "";
+    state.filters.listLimit = 50;
     elements.filterDate.value = "";
     elements.filterType.value = "all";
     elements.filterQuery.value = "";
     persistSettings();
     renderTransactions();
   });
+
+  elements.filterDate.addEventListener("change", () => { state.filters.listLimit = 50; });
+  elements.filterType.addEventListener("change", () => { state.filters.listLimit = 50; });
+  elements.filterQuery.addEventListener("input", () => { state.filters.listLimit = 50; });
 
   elements.exportJsonButton.addEventListener("click", exportJson);
   elements.exportCsvButton.addEventListener("click", exportCsv);
@@ -251,6 +335,11 @@ function attachEventListeners() {
   elements.signOutButton.addEventListener("click", handleSignOut);
   elements.migrateButton.addEventListener("click", migrateLocalToCloud);
   elements.downloadShortcutButton?.addEventListener("click", downloadWindowsShortcut);
+  elements.petSelect?.addEventListener("change", (event) => {
+    setEquippedPet(event.target.value);
+  });
+  elements.petTeamList?.addEventListener("click", handlePetRosterClick);
+  elements.petBoxList?.addEventListener("click", handlePetRosterClick);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -329,6 +418,13 @@ async function initFirebase() {
       state.syncMode = "syncing";
       renderAuthPanel();
       subscribeToCloudTransactions(user.uid);
+      setTimeout(() => {
+        if (state.syncMode === "syncing") {
+          state.syncMode = "error";
+          state.syncError = "連線逾時，請重新整理頁面。";
+          renderAuthPanel();
+        }
+      }, 12000);
     });
   } catch (error) {
     console.error(error);
@@ -463,17 +559,20 @@ async function handleSubmit(event) {
   };
 
   elements.saveButton.disabled = true;
-  const previousDragonStage = getDragonStatus(state.transactions).stage;
+  elements.saveButton.textContent = "儲存中…";
+  const previousUnlockedPetIds = getPetCollectionState(state.transactions).unlockedPets.map((pet) => pet.id);
 
   try {
     await saveTransaction(payload);
     renderCategoryOptions();
     render();
     resetForm();
-    const currentDragon = getDragonStatus(state.transactions);
-    const leveledUp = !existing && currentDragon.stage > previousDragonStage;
-    if (leveledUp) {
-      showToast(`${currentDragon.name} 進化了！`);
+    const currentUnlockedPets = getPetCollectionState(state.transactions).unlockedPets;
+    const newlyUnlockedPet = !existing
+      ? currentUnlockedPets.find((pet) => !previousUnlockedPetIds.includes(pet.id))
+      : null;
+    if (newlyUnlockedPet) {
+      showToast(`${newlyUnlockedPet.name} 已加入你的收藏！`);
     } else if (existing) {
       showToast("已更新這筆記錄");
     } else {
@@ -485,6 +584,7 @@ async function handleSubmit(event) {
     showToast(state.user ? getFirestoreErrorMessage(error) : "本機儲存失敗");
   } finally {
     elements.saveButton.disabled = false;
+    elements.saveButton.textContent = "儲存紀錄";
   }
 }
 
@@ -528,7 +628,7 @@ async function saveTransactionToCloud(transaction) {
 }
 
 function render() {
-  renderDragonCompanion();
+  renderPetCompanion();
   renderQuickGlance();
   renderSummary();
   renderTransactions();
@@ -555,6 +655,23 @@ function renderSummary() {
   elements.summaryTitle.textContent = state.summaryMonth
     ? formatMonthLabel(state.summaryMonth)
     : "全部月份";
+
+  const currentMonth = formatMonthInput(new Date());
+  if (elements.summaryInProgressBadge) {
+    elements.summaryInProgressBadge.hidden = state.summaryMonth !== currentMonth;
+  }
+
+  if (elements.budgetProgressWrap && elements.monthlyBudgetInput) {
+    if (state.monthlyBudget > 0) {
+      const pct = Math.min(100, Math.round((expense / state.monthlyBudget) * 100));
+      elements.budgetProgressWrap.hidden = false;
+      elements.budgetProgressFill.style.width = `${pct}%`;
+      elements.budgetProgressFill.className = `budget-progress-fill${pct >= 100 ? " over-budget" : pct >= 80 ? " warn-budget" : ""}`;
+      elements.budgetProgressText.textContent = `本月支出 ${formatCurrency(expense)} / 預算 ${formatCurrency(state.monthlyBudget)}（${pct}%）`;
+    } else {
+      elements.budgetProgressWrap.hidden = true;
+    }
+  }
   elements.balanceValue.textContent = formatCurrency(balance);
   elements.incomeValue.textContent = formatCurrency(income);
   elements.expenseValue.textContent = formatCurrency(expense);
@@ -582,11 +699,19 @@ function renderSummary() {
 }
 
 function renderTransactions() {
-  const items = getFilteredTransactions();
+  const allItems = getFilteredTransactions();
+  const items = allItems.slice(0, state.filters.listLimit);
 
-  if (items.length === 0) {
+  if (elements.loadMoreButton) {
+    elements.loadMoreButton.hidden = allItems.length <= state.filters.listLimit;
+    elements.loadMoreButton.textContent = `顯示更多（還有 ${allItems.length - items.length} 筆）`;
+  }
+
+  if (allItems.length === 0) {
     elements.transactionList.className = "transaction-list empty-state";
-    elements.transactionList.textContent = "沒有符合目前篩選條件的資料";
+    elements.transactionList.textContent = state.filters.date || state.filters.type !== "all" || state.filters.query
+      ? "沒有符合篩選條件的資料，試試清除篩選"
+      : "目前還沒有任何記帳資料";
     return;
   }
 
@@ -758,17 +883,50 @@ function renderPieChart(expenseByCategory, totalExpense) {
     path.setAttribute("fill", COLORS[i % COLORS.length]);
     path.setAttribute("stroke", "rgba(255,253,249,1)");
     path.setAttribute("stroke-width", "2");
+    path.style.cursor = "pointer";
+    path.title = slices[i].category;
+    path.addEventListener("click", () => filterByCategory(slices[i].category));
     svg.appendChild(path);
 
     const li = document.createElement("li");
     li.className = "pie-legend-item";
+    li.style.cursor = "pointer";
     li.innerHTML = `<span class="pie-legend-dot" style="background:${COLORS[i % COLORS.length]}"></span><span class="pie-legend-name">${escapeHtml(slices[i].category)}</span><span class="pie-legend-pct">${Math.round(pct * 100)}%</span>`;
+    li.addEventListener("click", () => filterByCategory(slices[i].category));
     legend.appendChild(li);
 
     startAngle = end;
   }
 
   container.appendChild(svg);
+}
+
+function filterByCategory(category) {
+  state.filters.query = category;
+  state.filters.listLimit = 50;
+  elements.filterQuery.value = category;
+  persistSettings();
+  setActiveTab("records");
+  renderTransactions();
+}
+
+function copyLastEntry() {
+  const sorted = [...state.transactions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const last = sorted[0];
+  if (!last) { showToast("還沒有任何記錄可以複製"); return; }
+  elements.amountInput.value = String(last.amount);
+  const typeRadio = elements.transactionForm.querySelector(`input[name="type"][value="${last.type}"]`);
+  if (typeRadio) typeRadio.checked = true;
+  renderCategoryOptions();
+  updateNeedWantVisibility();
+  elements.categorySelect.value = last.category;
+  if (last.needWant) {
+    const nwRadio = elements.needWantField.querySelector(`input[name="needWant"][value="${last.needWant}"]`);
+    if (nwRadio) nwRadio.checked = true;
+    updateNeedWantToggle();
+  }
+  elements.noteInput.value = last.note || "";
+  showToast(`已帶入：${last.category} $${last.amount}`);
 }
 
 function showCelebration() {
@@ -841,119 +999,241 @@ function renderQuickGlance() {
   elements.todayExpenseValue.textContent = formatCurrency(expense);
 }
 
-function renderDragonCompanion() {
+function renderPetCompanion() {
   if (!elements.dragonCompanionCard) {
     return;
   }
 
-  const status = getDragonStatus(state.transactions);
-  elements.dragonCompanionCard.dataset.stage = String(status.stage);
-  elements.dragonStageImage.src = status.image;
-  elements.dragonStageName.textContent = status.name;
-  elements.dragonStageBadge.textContent = status.badge;
-  elements.dragonStageHint.textContent = status.hint;
-  elements.dragonStreakValue.textContent = `${status.streak} 天`;
-  elements.dragonMilestoneValue.textContent = status.nextMilestoneLabel;
-  elements.dragonProgressFill.style.width = `${status.progressPercent}%`;
-  elements.dragonProgressText.textContent = status.progressText;
-  if (elements.dragonStatHp) elements.dragonStatHp.textContent = status.hp;
-  if (elements.dragonStatAtk) elements.dragonStatAtk.textContent = status.atk;
-  if (elements.dragonStatDef) elements.dragonStatDef.textContent = status.def;
-  if (elements.dragonStatLevel) elements.dragonStatLevel.textContent = `Level ${status.level}`;
+  const collection = syncPetPreferences();
+  const activePet = collection.activePet;
+  if (!activePet) {
+    return;
+  }
+
+  elements.dragonCompanionCard.dataset.stage = String(collection.teamPets.length || 1);
+  elements.dragonStageImage.src = activePet.image;
+  elements.dragonStageImage.alt = `首頁陪伴寵物 ${activePet.name}`;
+  elements.dragonStageName.textContent = activePet.name;
+  elements.dragonStageBadge.textContent = activePet.badge;
+  elements.dragonStageHint.textContent = `${activePet.name} 正在陪你記帳`;
+  elements.dragonStreakValue.textContent = `${collection.teamPets.length} / ${MAX_ACTIVE_PETS}`;
+  elements.dragonMilestoneValue.textContent = collection.nextReleaseLabel;
+  elements.dragonProgressFill.style.width = `${collection.teamProgressPercent}%`;
+  elements.dragonProgressText.textContent = collection.progressText;
+  if (elements.dragonStatHp) elements.dragonStatHp.textContent = activePet.hp;
+  if (elements.dragonStatAtk) elements.dragonStatAtk.textContent = activePet.atk;
+  if (elements.dragonStatDef) elements.dragonStatDef.textContent = activePet.def;
+  if (elements.dragonStatLevel) elements.dragonStatLevel.textContent = `Level ${activePet.level}`;
+
+  if (elements.petCurrentMonth) {
+    elements.petCurrentMonth.textContent = collection.currentMonthLabel;
+  }
+
+  if (elements.petCollectionCount) {
+    elements.petCollectionCount.textContent = `${collection.unlockedPets.length} 隻`;
+  }
+
+  if (elements.petTeamCount) {
+    elements.petTeamCount.textContent = `${collection.teamPets.length} / ${MAX_ACTIVE_PETS}`;
+  }
+
+  if (elements.petBoxCount) {
+    elements.petBoxCount.textContent = `${collection.boxPets.length} 隻`;
+  }
+
+  if (elements.petSelect) {
+    const options = collection.teamPets.map(
+      (pet) => `<option value="${escapeHtml(pet.id)}">${escapeHtml(pet.name)}</option>`
+    );
+    elements.petSelect.innerHTML = options.join("");
+    elements.petSelect.value = collection.activePet.id;
+  }
+
+  renderPetRoster(elements.petTeamList, collection.teamPets, collection.activePet.id, "team");
+  renderPetRoster(elements.petBoxList, collection.boxPets, collection.activePet.id, "box");
 }
 
-function getDragonStatus(items) {
-  const streak = getCurrentStreak(items);
-  const stageConfig = getDragonStageConfig(streak);
-  const latestStamp = getLatestRecordedDayStamp(items);
-  const todayStamp = getDayStamp(formatDateInput(new Date()));
-  const hasTodayRecord = latestStamp === todayStamp;
-  const hasCarryover = latestStamp === todayStamp - DAY_MS;
-  const nextStage = DRAGON_STAGES.find((candidate) => candidate.minDays > streak);
-  const baseProgress = stageConfig.stage === 1
-    ? streak / 5
-    : stageConfig.stage === 2
-      ? (streak - 5) / 25
-      : 1;
-  const progressPercent = Math.max(10, Math.min(100, Math.round(baseProgress * 100)));
+function renderPetRoster(container, pets, activePetId, mode) {
+  if (!container) {
+    return;
+  }
 
-  let hint = "今天先記一筆，讓小火龍開始陪你連續成長。";
-  let progressText = "距離第一次進化還有 5 天。";
-  let nextMilestoneLabel = nextStage ? `${nextStage.minDays} 天` : "最終型態已解鎖";
+  if (!pets.length) {
+    container.className = "pet-grid empty-state-inline";
+    container.textContent = mode === "box" ? "目前還沒有放進精靈盒的夥伴" : "還沒有可出戰的夥伴";
+    return;
+  }
 
-  if (streak === 0) {
-    progressText = "這一筆會是新的連續起點。";
-  } else if (stageConfig.stage === 3) {
-    hint = "你已達成 30 天連續記帳，火龍已經完全進化。";
-    progressText = hasTodayRecord
-      ? "今天也有照顧到最終型態火龍，保持得很漂亮。"
-      : "今天再記一筆，讓最終型態繼續保持滿能量。";
-  } else if (nextStage) {
-    const daysLeft = Math.max(0, nextStage.minDays - streak);
-    hint = `再連續 ${daysLeft} 天就會進化成${nextStage.name}。`;
-    if (hasTodayRecord) {
-      progressText = `今天已完成記帳，距離下一次進化還差 ${daysLeft} 天。`;
-    } else if (hasCarryover) {
-      progressText = `今天再記一筆，就能把 ${streak} 天連續記帳延續下去。`;
-    } else {
-      progressText = `連續紀錄已中斷，今天重新開始培養 ${stageConfig.name}。`;
+  container.className = `pet-grid${mode === "box" ? " pet-grid-box" : ""}`;
+  container.innerHTML = pets
+    .map((pet) => {
+      const isActive = pet.id === activePetId;
+      const buttonLabel = mode === "box"
+        ? "帶進隊伍"
+        : isActive
+          ? "目前帶出中"
+          : "設為首頁夥伴";
+      const action = mode === "box" ? "carry" : "equip";
+
+      return `
+        <article class="pet-card${isActive ? " is-active" : ""}">
+          <img class="pet-card-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}">
+          <div class="pet-card-meta">
+            <strong>${escapeHtml(pet.name)}</strong>
+            <span>${escapeHtml(formatMonthLabel(pet.month))}</span>
+          </div>
+          <button
+            class="ghost-button pet-card-button"
+            type="button"
+            data-pet-action="${action}"
+            data-pet-id="${escapeHtml(pet.id)}"
+            ${mode === "team" && isActive ? "disabled" : ""}
+          >${buttonLabel}</button>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function handlePetRosterClick(event) {
+  const trigger = event.target.closest("[data-pet-action]");
+  if (!trigger) {
+    return;
+  }
+
+  const petId = trigger.dataset.petId || "";
+  const action = trigger.dataset.petAction || "";
+  if (!petId) {
+    return;
+  }
+
+  if (action === "carry") {
+    bringPetToTeam(petId);
+    return;
+  }
+
+  if (action === "equip") {
+    setEquippedPet(petId);
+  }
+}
+
+function setEquippedPet(petId) {
+  const collection = syncPetPreferences();
+  if (!collection.teamPets.some((pet) => pet.id === petId)) {
+    bringPetToTeam(petId);
+    return;
+  }
+
+  state.equippedPetId = petId;
+  persistSettings();
+  renderPetCompanion();
+}
+
+function bringPetToTeam(petId) {
+  const collection = syncPetPreferences();
+  if (!collection.unlockedPets.some((pet) => pet.id === petId)) {
+    return;
+  }
+
+  state.petTeamOrder = [petId, ...state.petTeamOrder.filter((id) => id !== petId)];
+  state.equippedPetId = petId;
+  persistSettings();
+  renderPetCompanion();
+  showToast("已把這隻寵物帶進首頁隊伍");
+}
+
+function syncPetPreferences() {
+  const previousOrder = JSON.stringify(state.petTeamOrder);
+  const previousEquippedPetId = state.equippedPetId;
+  const unlockedPets = getUnlockedPets(new Date());
+  const unlockedIds = unlockedPets.map((pet) => pet.id);
+  const nextTeamOrder = state.petTeamOrder.filter((id) => unlockedIds.includes(id));
+
+  for (const pet of unlockedPets) {
+    if (!nextTeamOrder.includes(pet.id)) {
+      nextTeamOrder.push(pet.id);
     }
   }
 
+  state.petTeamOrder = nextTeamOrder;
+  const teamPets = nextTeamOrder
+    .slice(0, MAX_ACTIVE_PETS)
+    .map((id) => unlockedPets.find((pet) => pet.id === id))
+    .filter(Boolean);
+
+  if (!teamPets.some((pet) => pet.id === state.equippedPetId)) {
+    state.equippedPetId = teamPets[0]?.id || "";
+  }
+
+  if (JSON.stringify(state.petTeamOrder) !== previousOrder || state.equippedPetId !== previousEquippedPetId) {
+    persistSettings();
+  }
+
+  return getPetCollectionStateFromPets(unlockedPets);
+}
+
+function getPetCollectionState(items = state.transactions) {
+  const unlockedPets = getUnlockedPets(new Date(), items);
+  return getPetCollectionStateFromPets(unlockedPets);
+}
+
+function getPetCollectionStateFromPets(unlockedPets) {
+  const unlockedIds = unlockedPets.map((pet) => pet.id);
+  const orderedIds = state.petTeamOrder.filter((id) => unlockedIds.includes(id));
+  for (const pet of unlockedPets) {
+    if (!orderedIds.includes(pet.id)) {
+      orderedIds.push(pet.id);
+    }
+  }
+
+  const teamPets = orderedIds
+    .slice(0, MAX_ACTIVE_PETS)
+    .map((id) => unlockedPets.find((pet) => pet.id === id))
+    .filter(Boolean);
+  const boxPets = orderedIds
+    .slice(MAX_ACTIVE_PETS)
+    .map((id) => unlockedPets.find((pet) => pet.id === id))
+    .filter(Boolean);
+  const activePet = teamPets.find((pet) => pet.id === state.equippedPetId) || teamPets[0] || unlockedPets[0] || null;
+  const nextRelease = getNextPetRelease();
+  const currentMonthPet = getCurrentMonthPet();
+
   return {
-    ...stageConfig,
-    streak,
-    hint,
-    progressText,
-    progressPercent,
-    nextMilestoneLabel,
+    unlockedPets,
+    teamPets,
+    boxPets,
+    activePet,
+    nextReleaseLabel: nextRelease ? formatMonthLabel(nextRelease.month) : "待公布",
+    currentMonthLabel: currentMonthPet
+      ? `${formatMonthLabel(currentMonthPet.month)} · ${currentMonthPet.name}`
+      : `${formatMonthLabel(formatMonthInput(new Date()))} · 待公布`,
+    progressText: boxPets.length
+      ? `隊伍已滿編，超過的 ${boxPets.length} 隻已先放進精靈盒。`
+      : nextRelease
+        ? `下個月登場：${formatMonthLabel(nextRelease.month)} · ${nextRelease.name}`
+        : "接下來的新寵物可以每月再加進收藏。",
+    teamProgressPercent: Math.max(12, Math.min(100, Math.round((teamPets.length / MAX_ACTIVE_PETS) * 100))),
   };
 }
 
-function getDragonStageConfig(streak) {
-  if (streak >= 30) {
-    return DRAGON_STAGES[2];
-  }
-
-  if (streak >= 5) {
-    return DRAGON_STAGES[1];
-  }
-
-  return DRAGON_STAGES[0];
+function getUnlockedPets(now = new Date()) {
+  const currentMonth = formatMonthInput(now);
+  return PET_RELEASES.filter((pet) => pet.month <= currentMonth);
 }
 
-function getCurrentStreak(items) {
-  const uniqueDayStamps = getUniqueRecordedDayStamps(items);
-  if (!uniqueDayStamps.length) {
-    return 0;
-  }
-
-  const todayStamp = getDayStamp(formatDateInput(new Date()));
-  const latestStamp = uniqueDayStamps[0];
-  if (latestStamp < todayStamp - DAY_MS) {
-    return 0;
-  }
-
-  let streak = 1;
-  for (let index = 1; index < uniqueDayStamps.length; index += 1) {
-    if (uniqueDayStamps[index] === uniqueDayStamps[index - 1] - DAY_MS) {
-      streak += 1;
-      continue;
-    }
-    break;
-  }
-
-  return streak;
+function getCurrentMonthPet(now = new Date()) {
+  const currentMonth = formatMonthInput(now);
+  return PET_RELEASES.find((pet) => pet.month === currentMonth) || null;
 }
 
-function getUniqueRecordedDayStamps(items) {
-  return Array.from(
-    new Set(items.map((item) => getDayStamp(item.date)).filter((stamp) => Number.isFinite(stamp)))
-  ).sort((left, right) => right - left);
-}
+function getNextPetRelease(now = new Date()) {
+  const currentMonth = formatMonthInput(now);
+  const configuredRelease = PET_RELEASES.find((pet) => pet.month > currentMonth);
+  if (configuredRelease) {
+    return configuredRelease;
+  }
 
-function getLatestRecordedDayStamp(items) {
-  return getUniqueRecordedDayStamps(items)[0] ?? null;
+  return NEXT_PET_PLACEHOLDER.month > currentMonth ? NEXT_PET_PLACEHOLDER : null;
 }
 
 function getDayStamp(dateInput) {
@@ -1177,6 +1457,10 @@ function exportJson() {
     exportedAt: new Date().toISOString(),
     mode: isCloudMode() ? "cloud" : "local",
     transactions: state.transactions,
+    petPreferences: {
+      equippedPetId: state.equippedPetId,
+      petTeamOrder: state.petTeamOrder,
+    },
   };
 
   downloadFile(
@@ -1220,9 +1504,18 @@ async function importJson(event) {
     const text = await file.text();
     const parsed = JSON.parse(text);
     const transactions = Array.isArray(parsed) ? parsed : parsed.transactions;
+    const petPreferences = !Array.isArray(parsed) && parsed.petPreferences && typeof parsed.petPreferences === "object"
+      ? parsed.petPreferences
+      : null;
 
     if (!Array.isArray(transactions)) {
       throw new Error("invalid-format");
+    }
+
+    const existingCount = state.transactions.length;
+    if (existingCount > 0) {
+      const ok = window.confirm(`匯入將覆蓋目前 ${existingCount} 筆記錄，確定繼續嗎？`);
+      if (!ok) { event.target.value = ""; return; }
     }
 
     const normalized = transactions
@@ -1237,6 +1530,13 @@ async function importJson(event) {
       state.localTransactions = normalized;
       state.transactions = [...normalized];
       saveLocalTransactions();
+      if (petPreferences) {
+        state.equippedPetId = String(petPreferences.equippedPetId || "");
+        state.petTeamOrder = Array.isArray(petPreferences.petTeamOrder)
+          ? petPreferences.petTeamOrder.map(String)
+          : state.petTeamOrder;
+        persistSettings();
+      }
       renderCategoryOptions();
       render();
       resetForm();
@@ -1385,6 +1685,12 @@ function hydrateSettings() {
     state.filters.date = settings.filters?.date ?? state.filters.date;
     state.filters.type = settings.filters?.type || state.filters.type;
     state.filters.query = settings.filters?.query || state.filters.query;
+    state.petTeamOrder = Array.isArray(settings.petTeamOrder) ? settings.petTeamOrder.map(String) : [];
+    state.equippedPetId = String(settings.equippedPetId || "");
+    state.monthlyBudget = Number(settings.monthlyBudget) || 0;
+    if (elements.monthlyBudgetInput && state.monthlyBudget > 0) {
+      elements.monthlyBudgetInput.value = String(state.monthlyBudget);
+    }
 
     elements.summaryMonth.value = state.summaryMonth;
     elements.filterDate.value = state.filters.date;
@@ -1402,6 +1708,9 @@ function persistSettings() {
       summaryMonth: state.summaryMonth,
       activeTab: state.activeTab,
       filters: state.filters,
+      petTeamOrder: state.petTeamOrder,
+      equippedPetId: state.equippedPetId,
+      monthlyBudget: state.monthlyBudget,
     })
   );
 }
@@ -1442,6 +1751,10 @@ function showToast(message) {
 
 function setActiveTab(tab) {
   const validTab = elements.tabPages.some((page) => page.dataset.tabPage === tab) ? tab : "quick";
+  if (validTab !== "quick" && elements.transactionId.value) {
+    if (!window.confirm("正在編輯記錄中，離開後變更不會儲存，確定要離開嗎？")) return;
+    resetForm();
+  }
   state.activeTab = validTab;
   applyActiveTab();
   persistSettings();

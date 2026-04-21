@@ -192,6 +192,91 @@ button {
   gap: 6px;
 }
 
+.pet-collection-surface {
+  display: grid;
+  gap: 16px;
+}
+
+.pet-collection-head {
+  align-items: end;
+}
+
+.pet-select-wrap {
+  display: grid;
+  gap: 8px;
+  min-width: min(100%, 230px);
+}
+
+.pet-metrics-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pet-roster-block {
+  display: grid;
+  gap: 12px;
+}
+
+.pet-roster-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.pet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pet-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pet-card.is-active {
+  border-color: rgba(241, 195, 109, 0.38);
+  background: linear-gradient(180deg, rgba(241, 195, 109, 0.14), rgba(255, 255, 255, 0.03));
+}
+
+.pet-card-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.25));
+}
+
+.pet-card-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.pet-card-meta strong {
+  font-size: 1rem;
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+.pet-card-meta span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.pet-card-button {
+  width: 100%;
+}
+
+.pet-card-button:disabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
 .brand-block h1 {
   margin: 0;
   font-family: var(--font-display);
@@ -1019,13 +1104,98 @@ input[type="month"]::-webkit-date-and-time-value {
   }
 }
 
+input.is-invalid {
+  border-color: rgba(234, 110, 100, 0.6);
+  box-shadow: 0 0 0 3px rgba(234, 110, 100, 0.12);
+}
+
+.budget-surface {
+  display: grid;
+  gap: 12px;
+}
+
+.budget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budget-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.budget-input-wrap input {
+  width: 130px;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
+.budget-progress-track {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  margin-bottom: 6px;
+}
+
+.budget-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal), #a8e6cf);
+  transition: width 300ms ease;
+}
+
+.budget-progress-fill.warn-budget {
+  background: linear-gradient(90deg, var(--gold), #ffd36b);
+}
+
+.budget-progress-fill.over-budget {
+  background: linear-gradient(90deg, var(--red), #f9a8a2);
+}
+
+.quick-date-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.quick-date-btn {
+  padding: 7px 14px;
+  font-size: 0.84rem;
+  min-height: unset;
+}
+
+.load-more-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.pet-hint {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+}
+
+.page-heading h2 + .mode-badge {
+  display: inline-flex;
+  margin-left: 10px;
+  vertical-align: middle;
+  font-size: 0.78rem;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     padding-left: 14px;
     padding-right: 14px;
   }
 
-  .app-header,
   .page-heading,
   .surface-head,
   .transaction-main,
@@ -1039,6 +1209,7 @@ input[type="month"]::-webkit-date-and-time-value {
   }
 
   .quick-glance-grid,
+  .pet-metrics-grid,
   .top-grid,
   .middle-grid,
   .metric-grid,
@@ -1057,6 +1228,10 @@ input[type="month"]::-webkit-date-and-time-value {
 
   .filters-grid label:last-child {
     grid-column: 1 / -1;
+  }
+
+  .pet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .form-actions,
@@ -1096,5 +1271,22 @@ input[type="month"]::-webkit-date-and-time-value {
   .celebration-card {
     width: min(100vw - 40px, 220px);
     min-height: 220px;
+  }
+
+  .app-header {
+    align-items: center;
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 400px) {
+  .header-dragon-visual {
+    width: 80px;
+    height: 80px;
+  }
+
+  .header-dragon-img {
+    width: 76px;
+    height: 76px;
   }
 }

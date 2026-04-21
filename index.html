@@ -111,6 +111,7 @@
             <div class="form-actions">
               <button id="saveButton" type="submit" class="primary-button">儲存紀錄</button>
               <button id="cancelEditButton" class="ghost-button" type="button" hidden>取消編輯</button>
+              <button id="copyLastButton" class="ghost-button" type="button">帶入上一筆</button>
             </div>
           </form>
         </section>
@@ -126,22 +127,67 @@
           </article>
         </div>
 
-        <div class="dragon-strip">
-          <div class="dragon-strip-metrics">
-            <span class="dragon-strip-label">連續記帳</span>
-            <strong id="dragonStreakValue">0 天</strong>
-          </div>
-          <div class="dragon-strip-progress">
-            <div class="dragon-progress-track" aria-hidden="true">
-              <div id="dragonProgressFill" class="dragon-progress-fill"></div>
+        <section class="surface pet-collection-surface">
+          <div class="surface-head pet-collection-head">
+            <div>
+              <p class="eyebrow">Pet Collection</p>
+              <h3 id="petCurrentMonth">2026 年 4 月 · 小火龍</h3>
+              <p class="surface-note pet-hint">每個月都會有限定夥伴自動加入你的收藏，隊伍最多 6 隻，超過的會放進精靈盒。</p>
             </div>
-            <p id="dragonProgressText" class="surface-caption">距離進化還有 5 天</p>
+            <label class="pet-select-wrap">
+              <span>首頁要帶哪一隻</span>
+              <select id="petSelect"></select>
+            </label>
           </div>
-          <div class="dragon-strip-metrics">
-            <span class="dragon-strip-label">下一次進化</span>
-            <strong id="dragonMilestoneValue">5 天</strong>
+
+          <div class="quick-glance-grid pet-metrics-grid">
+            <article class="mini-surface">
+              <span>已收藏</span>
+              <strong id="petCollectionCount">1 隻</strong>
+            </article>
+            <article class="mini-surface">
+              <span>目前隊伍</span>
+              <strong id="petTeamCount">1 / 6</strong>
+            </article>
+            <article class="mini-surface">
+              <span>精靈盒</span>
+              <strong id="petBoxCount">0 隻</strong>
+            </article>
           </div>
-        </div>
+
+          <div class="dragon-strip">
+            <div class="dragon-strip-metrics">
+              <span class="dragon-strip-label">隊伍容量</span>
+              <strong id="dragonStreakValue">1 / 6</strong>
+            </div>
+            <div class="dragon-strip-progress">
+              <div class="dragon-progress-track" aria-hidden="true">
+                <div id="dragonProgressFill" class="dragon-progress-fill"></div>
+              </div>
+              <p id="dragonProgressText" class="surface-caption">下個月登場：5 月 · 草苗龜</p>
+            </div>
+            <div class="dragon-strip-metrics">
+              <span class="dragon-strip-label">下月新夥伴</span>
+              <strong id="dragonMilestoneValue">5 月</strong>
+            </div>
+          </div>
+
+          <div class="pet-roster-block">
+            <div class="pet-roster-head">
+              <span>目前隊伍</span>
+              <span>最多 6 隻</span>
+            </div>
+            <div id="petTeamList" class="pet-grid"></div>
+          </div>
+
+          <div class="pet-roster-block">
+            <div class="pet-roster-head">
+              <span>精靈盒</span>
+              <span>超過 6 隻會先放這裡</span>
+            </div>
+            <div id="petBoxList" class="pet-grid pet-grid-box empty-state-inline">目前還沒有放進精靈盒的夥伴</div>
+          </div>
+        </section>
       </section>
 
       <section class="tab-page" data-tab-page="overview">
@@ -149,6 +195,7 @@
           <div>
             <p class="eyebrow">本月概況</p>
             <h2 id="summaryTitle">2026 年 4 月</h2>
+            <span id="summaryInProgressBadge" class="mode-badge accent-badge" hidden>進行中</span>
           </div>
           <label class="month-picker">
             <span>月份</span>
@@ -170,6 +217,22 @@
             <strong id="expenseValue">$0</strong>
           </article>
         </div>
+
+        <section class="surface budget-surface">
+          <div class="budget-head">
+            <span class="surface-label">月支出預算</span>
+            <label class="budget-input-wrap">
+              <span>$</span>
+              <input id="monthlyBudgetInput" type="number" inputmode="decimal" min="0" placeholder="設定預算（選填）">
+            </label>
+          </div>
+          <div id="budgetProgressWrap" hidden>
+            <div class="budget-progress-track">
+              <div id="budgetProgressFill" class="budget-progress-fill"></div>
+            </div>
+            <p id="budgetProgressText" class="surface-caption"></p>
+          </div>
+        </section>
 
         <div class="overview-grid middle-grid">
           <article class="surface">
@@ -258,10 +321,16 @@
               <input id="filterQuery" type="search" placeholder="分類或備註">
             </label>
           </div>
+          <div class="quick-date-row">
+            <button class="ghost-button quick-date-btn" data-quick-date="today" type="button">今天</button>
+            <button class="ghost-button quick-date-btn" data-quick-date="week" type="button">最近 7 天</button>
+            <button class="ghost-button quick-date-btn" data-quick-date="month" type="button">最近 30 天</button>
+          </div>
 
           <div id="transactionList" class="transaction-list empty-state">
             目前還沒有任何記帳資料
           </div>
+          <button id="loadMoreButton" class="ghost-button load-more-btn" type="button" hidden>顯示更多</button>
         </section>
       </section>
 
