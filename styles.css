@@ -1104,6 +1104,38 @@ input[type="month"]::-webkit-date-and-time-value {
   }
 }
 
+.records-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.records-main {
+  display: grid;
+  gap: 16px;
+}
+
+.records-sidebar {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+.pet-sidebar-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.pet-sidebar-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+}
+
 input.is-invalid {
   border-color: rgba(234, 110, 100, 0.6);
   box-shadow: 0 0 0 3px rgba(234, 110, 100, 0.12);
@@ -1276,6 +1308,14 @@ input.is-invalid {
   .app-header {
     align-items: center;
     flex-direction: row;
+  }
+
+  .records-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .records-sidebar {
+    position: static;
   }
 }
 

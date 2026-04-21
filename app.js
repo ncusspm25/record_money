@@ -1918,7 +1918,7 @@ function renderInstallExperience() {
 }
 
 function scrollToInstallGuide() {
-  setActiveTab("sync");
+  setActiveTab("cloud-backup");
   requestAnimationFrame(() => {
     elements.installDescription?.scrollIntoView({ behavior: "smooth", block: "center" });
   });

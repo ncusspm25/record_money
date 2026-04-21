@@ -127,67 +127,6 @@
           </article>
         </div>
 
-        <section class="surface pet-collection-surface">
-          <div class="surface-head pet-collection-head">
-            <div>
-              <p class="eyebrow">Pet Collection</p>
-              <h3 id="petCurrentMonth">2026 年 4 月 · 小火龍</h3>
-              <p class="surface-note pet-hint">每個月都會有限定夥伴自動加入你的收藏，隊伍最多 6 隻，超過的會放進精靈盒。</p>
-            </div>
-            <label class="pet-select-wrap">
-              <span>首頁要帶哪一隻</span>
-              <select id="petSelect"></select>
-            </label>
-          </div>
-
-          <div class="quick-glance-grid pet-metrics-grid">
-            <article class="mini-surface">
-              <span>已收藏</span>
-              <strong id="petCollectionCount">1 隻</strong>
-            </article>
-            <article class="mini-surface">
-              <span>目前隊伍</span>
-              <strong id="petTeamCount">1 / 6</strong>
-            </article>
-            <article class="mini-surface">
-              <span>精靈盒</span>
-              <strong id="petBoxCount">0 隻</strong>
-            </article>
-          </div>
-
-          <div class="dragon-strip">
-            <div class="dragon-strip-metrics">
-              <span class="dragon-strip-label">隊伍容量</span>
-              <strong id="dragonStreakValue">1 / 6</strong>
-            </div>
-            <div class="dragon-strip-progress">
-              <div class="dragon-progress-track" aria-hidden="true">
-                <div id="dragonProgressFill" class="dragon-progress-fill"></div>
-              </div>
-              <p id="dragonProgressText" class="surface-caption">下個月登場：5 月 · 草苗龜</p>
-            </div>
-            <div class="dragon-strip-metrics">
-              <span class="dragon-strip-label">下月新夥伴</span>
-              <strong id="dragonMilestoneValue">5 月</strong>
-            </div>
-          </div>
-
-          <div class="pet-roster-block">
-            <div class="pet-roster-head">
-              <span>目前隊伍</span>
-              <span>最多 6 隻</span>
-            </div>
-            <div id="petTeamList" class="pet-grid"></div>
-          </div>
-
-          <div class="pet-roster-block">
-            <div class="pet-roster-head">
-              <span>精靈盒</span>
-              <span>超過 6 隻會先放這裡</span>
-            </div>
-            <div id="petBoxList" class="pet-grid pet-grid-box empty-state-inline">目前還沒有放進精靈盒的夥伴</div>
-          </div>
-        </section>
       </section>
 
       <section class="tab-page" data-tab-page="overview">
@@ -294,51 +233,119 @@
       </section>
 
       <section class="tab-page" data-tab-page="records">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">記錄列表</p>
-            <h2>查詢與整理</h2>
+        <div class="records-layout">
+
+          <div class="records-main">
+            <div class="page-heading">
+              <div>
+                <p class="eyebrow">記錄列表</p>
+                <h2>查詢與整理</h2>
+              </div>
+              <button id="clearFiltersButton" class="ghost-button">清除篩選</button>
+            </div>
+
+            <section class="surface">
+              <div class="filters-grid">
+                <label>
+                  <span>日期</span>
+                  <input id="filterDate" type="date">
+                </label>
+                <label>
+                  <span>類型</span>
+                  <select id="filterType">
+                    <option value="all">全部</option>
+                    <option value="expense">支出</option>
+                    <option value="income">收入</option>
+                  </select>
+                </label>
+                <label>
+                  <span>搜尋</span>
+                  <input id="filterQuery" type="search" placeholder="分類或備註">
+                </label>
+              </div>
+              <div class="quick-date-row">
+                <button class="ghost-button quick-date-btn" data-quick-date="today" type="button">今天</button>
+                <button class="ghost-button quick-date-btn" data-quick-date="week" type="button">最近 7 天</button>
+                <button class="ghost-button quick-date-btn" data-quick-date="month" type="button">最近 30 天</button>
+              </div>
+              <div id="transactionList" class="transaction-list empty-state">
+                目前還沒有任何記帳資料
+              </div>
+              <button id="loadMoreButton" class="ghost-button load-more-btn" type="button" hidden>顯示更多</button>
+            </section>
           </div>
-          <button id="clearFiltersButton" class="ghost-button">清除篩選</button>
+
+          <aside class="records-sidebar">
+            <section class="surface pet-collection-surface">
+              <div class="pet-sidebar-head">
+                <p class="eyebrow">Pet Collection</p>
+                <h3 id="petCurrentMonth">2026 年 4 月 · 小火龍</h3>
+                <p class="surface-note pet-hint">每月自動加入限定夥伴，隊伍最多 6 隻。</p>
+              </div>
+
+              <label class="pet-select-wrap">
+                <span>首頁帶哪隻</span>
+                <select id="petSelect"></select>
+              </label>
+
+              <div class="quick-glance-grid pet-metrics-grid">
+                <article class="mini-surface">
+                  <span>已收藏</span>
+                  <strong id="petCollectionCount">1 隻</strong>
+                </article>
+                <article class="mini-surface">
+                  <span>隊伍</span>
+                  <strong id="petTeamCount">1 / 6</strong>
+                </article>
+                <article class="mini-surface">
+                  <span>精靈盒</span>
+                  <strong id="petBoxCount">0 隻</strong>
+                </article>
+              </div>
+
+              <div class="dragon-strip">
+                <div class="dragon-strip-metrics">
+                  <span class="dragon-strip-label">容量</span>
+                  <strong id="dragonStreakValue">1 / 6</strong>
+                </div>
+                <div class="dragon-strip-progress">
+                  <div class="dragon-progress-track" aria-hidden="true">
+                    <div id="dragonProgressFill" class="dragon-progress-fill"></div>
+                  </div>
+                  <p id="dragonProgressText" class="surface-caption">下個月：草苗龜</p>
+                </div>
+                <div class="dragon-strip-metrics">
+                  <span class="dragon-strip-label">下月</span>
+                  <strong id="dragonMilestoneValue">5 月</strong>
+                </div>
+              </div>
+
+              <div class="pet-roster-block">
+                <div class="pet-roster-head">
+                  <span>目前隊伍</span>
+                  <span>最多 6 隻</span>
+                </div>
+                <div id="petTeamList" class="pet-grid"></div>
+              </div>
+
+              <div class="pet-roster-block">
+                <div class="pet-roster-head">
+                  <span>精靈盒</span>
+                  <span>超過放這裡</span>
+                </div>
+                <div id="petBoxList" class="pet-grid pet-grid-box empty-state-inline">精靈盒是空的</div>
+              </div>
+            </section>
+          </aside>
+
         </div>
-
-        <section class="surface">
-          <div class="filters-grid">
-            <label>
-              <span>日期</span>
-              <input id="filterDate" type="date">
-            </label>
-            <label>
-              <span>類型</span>
-              <select id="filterType">
-                <option value="all">全部</option>
-                <option value="expense">支出</option>
-                <option value="income">收入</option>
-              </select>
-            </label>
-            <label>
-              <span>搜尋</span>
-              <input id="filterQuery" type="search" placeholder="分類或備註">
-            </label>
-          </div>
-          <div class="quick-date-row">
-            <button class="ghost-button quick-date-btn" data-quick-date="today" type="button">今天</button>
-            <button class="ghost-button quick-date-btn" data-quick-date="week" type="button">最近 7 天</button>
-            <button class="ghost-button quick-date-btn" data-quick-date="month" type="button">最近 30 天</button>
-          </div>
-
-          <div id="transactionList" class="transaction-list empty-state">
-            目前還沒有任何記帳資料
-          </div>
-          <button id="loadMoreButton" class="ghost-button load-more-btn" type="button" hidden>顯示更多</button>
-        </section>
       </section>
 
-      <section class="tab-page" data-tab-page="sync">
+      <section class="tab-page" data-tab-page="cloud-backup">
         <div class="page-heading">
           <div>
-            <p class="eyebrow">雲端同步</p>
-            <h2>帳本同步與裝置管理</h2>
+            <p class="eyebrow">雲端備份</p>
+            <h2>同步、備份與安裝</h2>
           </div>
           <span id="syncModeBadge" class="mode-badge local">本機模式</span>
         </div>
@@ -346,7 +353,7 @@
         <section class="surface sync-surface">
           <div class="surface-head">
             <div>
-              <p class="eyebrow">目前狀態</p>
+              <p class="eyebrow">雲端同步</p>
               <h3 id="accountStatus">目前尚未登入，資料只會存在這台裝置的瀏覽器裡。</h3>
             </div>
           </div>
@@ -358,6 +365,36 @@
           </div>
           <p id="accountHint" class="surface-caption">公開網址公開的是程式，不是你的資料。只有通過 Firebase Auth 並符合規則的人才能讀到資料。</p>
         </section>
+
+        <section class="surface">
+          <div class="surface-head">
+            <div>
+              <p class="eyebrow">資料備份</p>
+              <h3>匯出與匯入</h3>
+            </div>
+            <div class="page-badge accent-badge">建議每月備份一次</div>
+          </div>
+          <div class="backup-actions">
+            <button id="exportJsonButton" class="secondary-button" type="button">匯出 JSON</button>
+            <button id="exportCsvButton" class="secondary-button" type="button">匯出 CSV</button>
+            <label class="file-button">
+              <input id="importInput" type="file" accept="application/json">
+              <span>匯入 JSON</span>
+            </label>
+          </div>
+          <p id="backupNote" class="backup-note">目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。</p>
+        </section>
+
+        <div class="overview-grid backup-grid">
+          <article class="surface">
+            <span class="surface-label">建議保存位置</span>
+            <strong class="surface-big-text">Google Drive / iCloud / 檔案夾</strong>
+          </article>
+          <article class="surface">
+            <span class="surface-label">專業使用習慣</span>
+            <strong class="surface-big-text">大改版前先匯出 JSON</strong>
+          </article>
+        </div>
 
         <section class="surface">
           <div class="surface-head">
@@ -382,39 +419,6 @@
           </div>
         </section>
       </section>
-
-      <section class="tab-page" data-tab-page="backup">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">備份</p>
-            <h2>匯出、匯入與資料安全</h2>
-          </div>
-          <div class="page-badge accent-badge">建議每月備份一次</div>
-        </div>
-
-        <section class="surface">
-          <div class="backup-actions">
-            <button id="exportJsonButton" class="secondary-button" type="button">匯出 JSON</button>
-            <button id="exportCsvButton" class="secondary-button" type="button">匯出 CSV</button>
-            <label class="file-button">
-              <input id="importInput" type="file" accept="application/json">
-              <span>匯入 JSON</span>
-            </label>
-          </div>
-          <p id="backupNote" class="backup-note">目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。</p>
-        </section>
-
-        <div class="overview-grid backup-grid">
-          <article class="surface">
-            <span class="surface-label">建議保存位置</span>
-            <strong class="surface-big-text">Google Drive / iCloud / 檔案夾</strong>
-          </article>
-          <article class="surface">
-            <span class="surface-label">專業使用習慣</span>
-            <strong class="surface-big-text">大改版前先匯出 JSON</strong>
-          </article>
-        </div>
-      </section>
     </main>
 
     <nav class="bottom-nav" aria-label="主要功能">
@@ -430,13 +434,9 @@
         <span class="nav-icon">≣</span>
         <span>記錄</span>
       </button>
-      <button class="tab-button" type="button" data-tab-target="sync">
+      <button class="tab-button" type="button" data-tab-target="cloud-backup">
         <span class="nav-icon">☁</span>
-        <span>雲端同步</span>
-      </button>
-      <button class="tab-button" type="button" data-tab-target="backup">
-        <span class="nav-icon">⭳</span>
-        <span>備份</span>
+        <span>雲端備份</span>
       </button>
     </nav>
   </div>
