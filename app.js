@@ -793,7 +793,7 @@ function showCelebration() {
     sticker.style.animation = "";
   }
 
-  setTimeout(() => { overlay.hidden = true; }, 2700);
+  setTimeout(() => { overlay.hidden = true; }, 900);
 }
 
 function updateNeedWantToggle() {

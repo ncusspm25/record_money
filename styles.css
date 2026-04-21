@@ -937,7 +937,7 @@ input[type="month"]::-webkit-date-and-time-value {
   position: relative;
   width: min(100vw - 48px, 260px);
   min-height: 240px;
-  animation: pop-in 280ms ease;
+  animation: pop-in 180ms ease;
 }
 
 .celebration-sticker {
@@ -947,7 +947,7 @@ input[type="month"]::-webkit-date-and-time-value {
   height: auto;
   transform: translate(-50%, -50%);
   filter: drop-shadow(0 24px 36px rgba(0, 0, 0, 0.35));
-  animation: sticker-pop 1.65s ease-in-out;
+  animation: sticker-pop 0.9s ease-in-out;
 }
 
 .toast {
