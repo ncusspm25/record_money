@@ -35,35 +35,35 @@ const PET_RELEASES = [
   {
     id: "pet-2026-04-charmander",
     month: "2026-04",
-    name: "小火龍",
     badge: "4 月限定夥伴",
     image: "assets/dragons/dragon-stage-1.png",
-    hp: 50,
-    atk: 20,
-    def: 10,
-    level: 14,
+    stages: [
+      { minDays: 0, name: "小火火", hp: 50, atk: 20, def: 10, level: 14 },
+      { minDays: 15, name: "火龍", hp: 108, atk: 52, def: 36, level: 26 },
+      { minDays: 30, name: "火焰飛龍", hp: 168, atk: 92, def: 64, level: 38 },
+    ],
   },
   {
     id: "pet-2026-05-turtwig",
     month: "2026-05",
-    name: "草苗龜",
     badge: "5 月限定夥伴",
     image: "assets/pets/pet-2026-05-grass.png",
-    hp: 72,
-    atk: 48,
-    def: 65,
-    level: 18,
+    stages: [
+      { minDays: 0, name: "芽芽龜", hp: 72, atk: 48, def: 65, level: 18 },
+      { minDays: 15, name: "森甲龜", hp: 118, atk: 68, def: 94, level: 29 },
+      { minDays: 30, name: "蒼岳靈龜", hp: 182, atk: 86, def: 128, level: 40 },
+    ],
   },
   {
     id: "pet-2026-06-greninja",
     month: "2026-06",
-    name: "甲賀忍蛙",
     badge: "6 月限定夥伴",
     image: "assets/pets/pet-2026-06-frog.png",
-    hp: 88,
-    atk: 95,
-    def: 67,
-    level: 24,
+    stages: [
+      { minDays: 0, name: "泡影忍蛙", hp: 88, atk: 95, def: 67, level: 24 },
+      { minDays: 15, name: "影躍忍蛙", hp: 126, atk: 118, def: 80, level: 34 },
+      { minDays: 30, name: "霜影蛙王", hp: 176, atk: 148, def: 96, level: 44 },
+    ],
   },
 ];
 
@@ -560,19 +560,22 @@ async function handleSubmit(event) {
 
   elements.saveButton.disabled = true;
   elements.saveButton.textContent = "儲存中…";
-  const previousUnlockedPetIds = getPetCollectionState(state.transactions).unlockedPets.map((pet) => pet.id);
+  const petRelease = PET_RELEASES.find((pet) => pet.month === payload.date.slice(0, 7));
+  const previousPetStageName = petRelease
+    ? decoratePetForMonth(petRelease, state.transactions).name
+    : "";
+  const nextTransactionsPreview = buildNextTransactionsPreview(payload, existingId);
+  const nextPetStageName = petRelease
+    ? decoratePetForMonth(petRelease, nextTransactionsPreview).name
+    : "";
 
   try {
     await saveTransaction(payload);
     renderCategoryOptions();
     render();
     resetForm();
-    const currentUnlockedPets = getPetCollectionState(state.transactions).unlockedPets;
-    const newlyUnlockedPet = !existing
-      ? currentUnlockedPets.find((pet) => !previousUnlockedPetIds.includes(pet.id))
-      : null;
-    if (newlyUnlockedPet) {
-      showToast(`${newlyUnlockedPet.name} 已加入你的收藏！`);
+    if (!existing && petRelease && previousPetStageName !== nextPetStageName) {
+      showToast(`${previousPetStageName} 進化成 ${nextPetStageName} 了！`);
     } else if (existing) {
       showToast("已更新這筆記錄");
     } else {
@@ -586,6 +589,23 @@ async function handleSubmit(event) {
     elements.saveButton.disabled = false;
     elements.saveButton.textContent = "儲存紀錄";
   }
+}
+
+function buildNextTransactionsPreview(payload, existingId) {
+  const normalized = normalizeTransaction(payload);
+  if (!normalized) {
+    return [...state.transactions];
+  }
+
+  const nextItems = [...state.transactions];
+  const existingIndex = nextItems.findIndex((item) => item.id === existingId);
+  if (existingIndex >= 0) {
+    nextItems[existingIndex] = normalized;
+  } else {
+    nextItems.push(normalized);
+  }
+
+  return nextItems;
 }
 
 async function saveTransaction(transaction) {
@@ -1010,16 +1030,21 @@ function renderPetCompanion() {
     return;
   }
 
+  const nextEvolution = getNextEvolutionTarget(activePet);
+  const evolutionProgress = Math.max(8, Math.min(100, Math.round((activePet.recordedDays / 30) * 100)));
+
   elements.dragonCompanionCard.dataset.stage = String(collection.teamPets.length || 1);
   elements.dragonStageImage.src = activePet.image;
   elements.dragonStageImage.alt = `首頁陪伴寵物 ${activePet.name}`;
   elements.dragonStageName.textContent = activePet.name;
   elements.dragonStageBadge.textContent = activePet.badge;
-  elements.dragonStageHint.textContent = `${activePet.name} 正在陪你記帳`;
+  elements.dragonStageHint.textContent = `${activePet.monthLabel} 已記錄 ${activePet.recordedDays} 天`;
   elements.dragonStreakValue.textContent = `${collection.teamPets.length} / ${MAX_ACTIVE_PETS}`;
-  elements.dragonMilestoneValue.textContent = collection.nextReleaseLabel;
-  elements.dragonProgressFill.style.width = `${collection.teamProgressPercent}%`;
-  elements.dragonProgressText.textContent = collection.progressText;
+  elements.dragonMilestoneValue.textContent = nextEvolution ? `${nextEvolution.minDays} 天` : "完全體";
+  elements.dragonProgressFill.style.width = `${evolutionProgress}%`;
+  elements.dragonProgressText.textContent = nextEvolution
+    ? `再記錄 ${Math.max(0, nextEvolution.minDays - activePet.recordedDays)} 天，${activePet.name} 就會進化成 ${nextEvolution.name}。`
+    : `${activePet.name} 已經達到這個月的最終型態。`;
   if (elements.dragonStatHp) elements.dragonStatHp.textContent = activePet.hp;
   if (elements.dragonStatAtk) elements.dragonStatAtk.textContent = activePet.atk;
   if (elements.dragonStatDef) elements.dragonStatDef.textContent = activePet.def;
@@ -1080,7 +1105,7 @@ function renderPetRoster(container, pets, activePetId, mode) {
           <img class="pet-card-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}">
           <div class="pet-card-meta">
             <strong>${escapeHtml(pet.name)}</strong>
-            <span>${escapeHtml(formatMonthLabel(pet.month))}</span>
+            <span>${escapeHtml(formatMonthLabel(pet.month))} · ${pet.recordedDays} / 30 天</span>
           </div>
           <button
             class="ghost-button pet-card-button"
@@ -1196,7 +1221,7 @@ function getPetCollectionStateFromPets(unlockedPets) {
     .filter(Boolean);
   const activePet = teamPets.find((pet) => pet.id === state.equippedPetId) || teamPets[0] || unlockedPets[0] || null;
   const nextRelease = getNextPetRelease();
-  const currentMonthPet = getCurrentMonthPet();
+  const currentMonthPet = getCurrentMonthPet(new Date(), state.transactions);
 
   return {
     unlockedPets,
@@ -1210,20 +1235,23 @@ function getPetCollectionStateFromPets(unlockedPets) {
     progressText: boxPets.length
       ? `隊伍已滿編，超過的 ${boxPets.length} 隻已先放進精靈盒。`
       : nextRelease
-        ? `下個月登場：${formatMonthLabel(nextRelease.month)} · ${nextRelease.name}`
+        ? `下個月登場：${formatMonthLabel(nextRelease.month)} · ${getPetReleasePreviewName(nextRelease)}`
         : "接下來的新寵物可以每月再加進收藏。",
     teamProgressPercent: Math.max(12, Math.min(100, Math.round((teamPets.length / MAX_ACTIVE_PETS) * 100))),
   };
 }
 
-function getUnlockedPets(now = new Date()) {
+function getUnlockedPets(now = new Date(), items = state.transactions) {
   const currentMonth = formatMonthInput(now);
-  return PET_RELEASES.filter((pet) => pet.month <= currentMonth);
+  return PET_RELEASES
+    .filter((pet) => pet.month <= currentMonth)
+    .map((pet) => decoratePetForMonth(pet, items));
 }
 
-function getCurrentMonthPet(now = new Date()) {
+function getCurrentMonthPet(now = new Date(), items = state.transactions) {
   const currentMonth = formatMonthInput(now);
-  return PET_RELEASES.find((pet) => pet.month === currentMonth) || null;
+  const pet = PET_RELEASES.find((entry) => entry.month === currentMonth);
+  return pet ? decoratePetForMonth(pet, items) : null;
 }
 
 function getNextPetRelease(now = new Date()) {
@@ -1234,6 +1262,57 @@ function getNextPetRelease(now = new Date()) {
   }
 
   return NEXT_PET_PLACEHOLDER.month > currentMonth ? NEXT_PET_PLACEHOLDER : null;
+}
+
+function getPetReleasePreviewName(petRelease) {
+  if (petRelease.stages?.[0]?.name) {
+    return petRelease.stages[0].name;
+  }
+
+  return petRelease.name || "待公布";
+}
+
+function getNextEvolutionTarget(pet) {
+  return pet.stages.find((stage) => stage.minDays > pet.recordedDays) || null;
+}
+
+function decoratePetForMonth(petRelease, items = state.transactions) {
+  const recordedDays = getRecordedDaysForMonth(items, petRelease.month);
+  const stage = getPetStage(petRelease, recordedDays);
+
+  return {
+    ...petRelease,
+    ...stage,
+    recordedDays,
+    monthLabel: formatMonthLabel(petRelease.month),
+  };
+}
+
+function getPetStage(petRelease, recordedDays) {
+  const stages = [...petRelease.stages].sort((left, right) => left.minDays - right.minDays);
+  let activeStage = stages[0];
+
+  for (const stage of stages) {
+    if (recordedDays >= stage.minDays) {
+      activeStage = stage;
+    }
+  }
+
+  return {
+    stageName: activeStage.name,
+    stageMinDays: activeStage.minDays,
+    name: activeStage.name,
+    hp: activeStage.hp,
+    atk: activeStage.atk,
+    def: activeStage.def,
+    level: activeStage.level,
+  };
+}
+
+function getRecordedDaysForMonth(items, month) {
+  return Array.from(
+    new Set(items.filter((item) => item.date.startsWith(month)).map((item) => item.date))
+  ).length;
 }
 
 function getDayStamp(dateInput) {

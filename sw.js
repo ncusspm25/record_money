@@ -1,4 +1,4 @@
-const CACHE_NAME = "pocket-ledger-v13";
+const CACHE_NAME = "pocket-ledger-v14";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,8 @@ const ASSETS = [
   "./assets/dragons/dragon-stage-1.png",
   "./assets/dragons/dragon-stage-2.png",
   "./assets/dragons/dragon-stage-3.png",
+  "./assets/pets/pet-2026-05-grass.png",
+  "./assets/pets/pet-2026-06-frog.png",
   "./assets/celebration/celebrate-tea-party.png",
   "./assets/celebration/celebrate-bunny-coin.png",
   "./assets/celebration/celebrate-checklist.png",
