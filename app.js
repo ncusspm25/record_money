@@ -142,11 +142,15 @@ const elements = {
   petBoxCount: document.querySelector("#petBoxCount"),
   petTeamList: document.querySelector("#petTeamList"),
   petBoxList: document.querySelector("#petBoxList"),
+  petCollectionMount: document.querySelector("#petCollectionMount"),
+  petCollectionSurface: document.querySelector(".pet-collection-surface"),
   petDock: document.querySelector("#petDock"),
   petDockTitle: document.querySelector("#petDockTitle"),
   petDockCount: document.querySelector("#petDockCount"),
   petDockList: document.querySelector("#petDockList"),
   petDockToggle: document.querySelector("#petDockToggle"),
+  recordsLayout: document.querySelector(".records-layout"),
+  recordsSidebar: document.querySelector(".records-sidebar"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -217,6 +221,7 @@ async function bootstrap() {
   // Always land on quick entry when opening the app unless a tab is explicitly requested in the URL.
   state.activeTab = initialTab || "quick";
 
+  mountPetCollectionPage();
   attachEventListeners();
   renderCategoryOptions();
   updateCategoryVisibility();
@@ -1137,7 +1142,7 @@ function renderPetDock(collection) {
     return;
   }
 
-  const shouldHideDock = state.activeTab === "records";
+  const shouldHideDock = state.activeTab === "pet-collection";
   elements.petDock.hidden = shouldHideDock;
   if (shouldHideDock) {
     return;
@@ -1179,6 +1184,22 @@ function renderPetDock(collection) {
       `;
       })
       .join("");
+}
+
+function mountPetCollectionPage() {
+  if (!elements.petCollectionMount || !elements.petCollectionSurface) {
+    return;
+  }
+
+  if (!elements.petCollectionMount.contains(elements.petCollectionSurface)) {
+    elements.petCollectionMount.append(elements.petCollectionSurface);
+  }
+
+  elements.recordsLayout?.classList.add("is-single-column");
+
+  if (elements.recordsSidebar && !elements.recordsSidebar.children.length) {
+    elements.recordsSidebar.remove();
+  }
 }
 
 function togglePetDockCollapsed() {

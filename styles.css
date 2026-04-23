@@ -197,6 +197,10 @@ button {
   gap: 16px;
 }
 
+#petCollectionMount {
+  display: grid;
+}
+
 .pet-collection-head {
   align-items: end;
 }
@@ -964,7 +968,7 @@ input[type="month"]::-webkit-date-and-time-value {
   transform: translateX(-50%);
   width: min(100% - 24px, 920px);
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   padding: 10px;
   border-radius: 24px;
@@ -1265,6 +1269,10 @@ input[type="month"]::-webkit-date-and-time-value {
   grid-template-columns: 1fr 300px;
   gap: 16px;
   align-items: start;
+}
+
+.records-layout.is-single-column {
+  grid-template-columns: 1fr;
 }
 
 .records-main {
