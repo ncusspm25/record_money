@@ -991,6 +991,11 @@ input[type="month"]::-webkit-date-and-time-value {
   z-index: 35;
 }
 
+.pet-dock-summary {
+  display: grid;
+  gap: 4px;
+}
+
 .pet-dock-head {
   display: flex;
   align-items: start;
@@ -1029,25 +1034,67 @@ input[type="month"]::-webkit-date-and-time-value {
   gap: 10px;
 }
 
-.pet-dock.is-collapsed {
-  width: 220px;
-  gap: 10px;
+.pet-dock.is-minimized {
+  width: 92px;
+  min-height: 92px;
+  padding: 10px;
+  gap: 0;
+  border-radius: 26px;
 }
 
-.pet-dock-list.is-collapsed {
+.pet-dock.is-minimized::after {
+  content: attr(data-count);
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border: 1px solid rgba(241, 195, 109, 0.28);
+  border-radius: 999px;
+  background: rgba(18, 14, 11, 0.92);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
+}
+
+.pet-dock.is-minimized .pet-dock-head {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
+.pet-dock.is-minimized .pet-dock-summary,
+.pet-dock.is-minimized #petDockCount,
+.pet-dock.is-minimized .pet-dock-name {
+  display: none;
+}
+
+.pet-dock.is-minimized .pet-dock-toggle {
+  width: 26px;
+  height: 26px;
+  font-size: 0.9rem;
+}
+
+.pet-dock.is-minimized .pet-dock-list {
   grid-template-columns: 1fr;
 }
 
-.pet-dock-list.is-collapsed .pet-dock-item {
-  grid-template-columns: 56px 1fr;
-  align-items: center;
-  justify-items: start;
-  gap: 10px;
-  padding: 10px;
+.pet-dock.is-minimized .pet-dock-item {
+  min-height: 72px;
+  align-content: center;
+  justify-items: center;
+  padding: 8px;
+  border-radius: 20px;
 }
 
-.pet-dock-list.is-collapsed .pet-dock-name {
-  text-align: left;
+.pet-dock.is-minimized .pet-dock-image {
+  width: 52px;
+  height: 52px;
 }
 
 .pet-dock-item {

@@ -1147,11 +1147,12 @@ function renderPetDock(collection) {
     ? `隊伍 · ${collection.activePet.name}`
     : "目前隊伍";
   elements.petDockCount.textContent = `${collection.teamPets.length} / ${MAX_ACTIVE_PETS}`;
-  elements.petDock.classList.toggle("is-collapsed", state.petDockCollapsed);
+  elements.petDock.dataset.count = String(collection.teamPets.length);
+  elements.petDock.classList.toggle("is-minimized", state.petDockCollapsed);
   if (elements.petDockToggle) {
     elements.petDockToggle.textContent = state.petDockCollapsed ? "＋" : "－";
     elements.petDockToggle.setAttribute("aria-expanded", String(!state.petDockCollapsed));
-    elements.petDockToggle.setAttribute("aria-label", state.petDockCollapsed ? "展開隊伍面板" : "縮小隊伍面板");
+    elements.petDockToggle.setAttribute("aria-label", state.petDockCollapsed ? "展開隊伍" : "最小化隊伍");
   }
 
   if (!collection.teamPets.length) {
@@ -1161,7 +1162,7 @@ function renderPetDock(collection) {
   }
 
   const visiblePets = state.petDockCollapsed ? collection.teamPets.slice(0, 1) : collection.teamPets;
-  elements.petDockList.className = `pet-dock-list${state.petDockCollapsed ? " is-collapsed" : ""}`;
+  elements.petDockList.className = "pet-dock-list";
   elements.petDockList.innerHTML = visiblePets
       .map((pet) => {
         const isActive = pet.id === collection.activePet?.id;
