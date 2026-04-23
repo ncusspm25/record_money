@@ -81,6 +81,7 @@ const state = {
   localTransactions: [],
   petTeamOrder: [],
   equippedPetId: "",
+  petDockCollapsed: false,
   activeTab: "quick",
   filters: {
     date: "",
@@ -145,6 +146,7 @@ const elements = {
   petDockTitle: document.querySelector("#petDockTitle"),
   petDockCount: document.querySelector("#petDockCount"),
   petDockList: document.querySelector("#petDockList"),
+  petDockToggle: document.querySelector("#petDockToggle"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -348,6 +350,7 @@ function attachEventListeners() {
   elements.petTeamList?.addEventListener("click", handlePetRosterClick);
   elements.petBoxList?.addEventListener("click", handlePetRosterClick);
   elements.petDockList?.addEventListener("click", handlePetRosterClick);
+  elements.petDockToggle?.addEventListener("click", togglePetDockCollapsed);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -1144,6 +1147,12 @@ function renderPetDock(collection) {
     ? `隊伍 · ${collection.activePet.name}`
     : "目前隊伍";
   elements.petDockCount.textContent = `${collection.teamPets.length} / ${MAX_ACTIVE_PETS}`;
+  elements.petDock.classList.toggle("is-collapsed", state.petDockCollapsed);
+  if (elements.petDockToggle) {
+    elements.petDockToggle.textContent = state.petDockCollapsed ? "＋" : "－";
+    elements.petDockToggle.setAttribute("aria-expanded", String(!state.petDockCollapsed));
+    elements.petDockToggle.setAttribute("aria-label", state.petDockCollapsed ? "展開隊伍面板" : "縮小隊伍面板");
+  }
 
   if (!collection.teamPets.length) {
     elements.petDockList.className = "pet-dock-list empty-state-inline";
@@ -1151,11 +1160,12 @@ function renderPetDock(collection) {
     return;
   }
 
-  elements.petDockList.className = "pet-dock-list";
-  elements.petDockList.innerHTML = collection.teamPets
-    .map((pet) => {
-      const isActive = pet.id === collection.activePet?.id;
-      return `
+  const visiblePets = state.petDockCollapsed ? collection.teamPets.slice(0, 1) : collection.teamPets;
+  elements.petDockList.className = `pet-dock-list${state.petDockCollapsed ? " is-collapsed" : ""}`;
+  elements.petDockList.innerHTML = visiblePets
+      .map((pet) => {
+        const isActive = pet.id === collection.activePet?.id;
+        return `
         <button
           class="pet-dock-item${isActive ? " is-active" : ""}"
           type="button"
@@ -1166,8 +1176,14 @@ function renderPetDock(collection) {
           <span class="pet-dock-name">${escapeHtml(pet.name)}</span>
         </button>
       `;
-    })
-    .join("");
+      })
+      .join("");
+}
+
+function togglePetDockCollapsed() {
+  state.petDockCollapsed = !state.petDockCollapsed;
+  persistSettings();
+  renderPetCompanion();
 }
 
 function handlePetRosterClick(event) {
@@ -1816,6 +1832,7 @@ function hydrateSettings() {
     state.filters.query = settings.filters?.query || state.filters.query;
     state.petTeamOrder = Array.isArray(settings.petTeamOrder) ? settings.petTeamOrder.map(String) : [];
     state.equippedPetId = String(settings.equippedPetId || "");
+    state.petDockCollapsed = Boolean(settings.petDockCollapsed);
     state.monthlyBudget = Number(settings.monthlyBudget) || 0;
     if (elements.monthlyBudgetInput && state.monthlyBudget > 0) {
       elements.monthlyBudgetInput.value = String(state.monthlyBudget);
@@ -1839,6 +1856,7 @@ function persistSettings() {
       filters: state.filters,
       petTeamOrder: state.petTeamOrder,
       equippedPetId: state.equippedPetId,
+      petDockCollapsed: state.petDockCollapsed,
       monthlyBudget: state.monthlyBudget,
     })
   );

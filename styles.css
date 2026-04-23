@@ -998,6 +998,12 @@ input[type="month"]::-webkit-date-and-time-value {
   gap: 12px;
 }
 
+.pet-dock-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .pet-dock-head h3 {
   margin: 0;
   font-family: var(--font-display);
@@ -1005,10 +1011,43 @@ input[type="month"]::-webkit-date-and-time-value {
   letter-spacing: -0.03em;
 }
 
+.pet-dock-toggle {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--card-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .pet-dock-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.pet-dock.is-collapsed {
+  width: 220px;
+  gap: 10px;
+}
+
+.pet-dock-list.is-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.pet-dock-list.is-collapsed .pet-dock-item {
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  justify-items: start;
+  gap: 10px;
+  padding: 10px;
+}
+
+.pet-dock-list.is-collapsed .pet-dock-name {
+  text-align: left;
 }
 
 .pet-dock-item {
