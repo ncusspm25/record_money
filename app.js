@@ -212,6 +212,9 @@ async function bootstrap() {
   state.transactions = [...state.localTransactions];
   hydrateSettings();
 
+  // Always land on quick entry when opening the app unless a tab is explicitly requested in the URL.
+  state.activeTab = initialTab || "quick";
+
   attachEventListeners();
   renderCategoryOptions();
   updateCategoryVisibility();

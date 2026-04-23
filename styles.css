@@ -964,7 +964,7 @@ input[type="month"]::-webkit-date-and-time-value {
   transform: translateX(-50%);
   width: min(100% - 24px, 920px);
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 10px;
   border-radius: 24px;
@@ -1044,12 +1044,16 @@ input[type="month"]::-webkit-date-and-time-value {
 .tab-button {
   display: grid;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
   justify-items: center;
+  align-content: center;
   padding: 10px 6px;
   border: 0;
   border-radius: 18px;
   background: transparent;
   color: var(--muted);
+  text-align: center;
 }
 
 .tab-button.is-active {
