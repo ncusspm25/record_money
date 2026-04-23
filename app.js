@@ -141,6 +141,10 @@ const elements = {
   petBoxCount: document.querySelector("#petBoxCount"),
   petTeamList: document.querySelector("#petTeamList"),
   petBoxList: document.querySelector("#petBoxList"),
+  petDock: document.querySelector("#petDock"),
+  petDockTitle: document.querySelector("#petDockTitle"),
+  petDockCount: document.querySelector("#petDockCount"),
+  petDockList: document.querySelector("#petDockList"),
   summaryMonth: document.querySelector("#summaryMonth"),
   summaryTitle: document.querySelector("#summaryTitle"),
   balanceValue: document.querySelector("#balanceValue"),
@@ -340,6 +344,7 @@ function attachEventListeners() {
   });
   elements.petTeamList?.addEventListener("click", handlePetRosterClick);
   elements.petBoxList?.addEventListener("click", handlePetRosterClick);
+  elements.petDockList?.addEventListener("click", handlePetRosterClick);
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
@@ -1076,6 +1081,7 @@ function renderPetCompanion() {
 
   renderPetRoster(elements.petTeamList, collection.teamPets, collection.activePet.id, "team");
   renderPetRoster(elements.petBoxList, collection.boxPets, collection.activePet.id, "box");
+  renderPetDock(collection);
 }
 
 function renderPetRoster(container, pets, activePetId, mode) {
@@ -1115,6 +1121,47 @@ function renderPetRoster(container, pets, activePetId, mode) {
             ${mode === "team" && isActive ? "disabled" : ""}
           >${buttonLabel}</button>
         </article>
+      `;
+    })
+    .join("");
+}
+
+function renderPetDock(collection) {
+  if (!elements.petDock || !elements.petDockList || !elements.petDockCount || !elements.petDockTitle) {
+    return;
+  }
+
+  const shouldHideDock = state.activeTab === "records";
+  elements.petDock.hidden = shouldHideDock;
+  if (shouldHideDock) {
+    return;
+  }
+
+  elements.petDockTitle.textContent = collection.activePet
+    ? `隊伍 · ${collection.activePet.name}`
+    : "目前隊伍";
+  elements.petDockCount.textContent = `${collection.teamPets.length} / ${MAX_ACTIVE_PETS}`;
+
+  if (!collection.teamPets.length) {
+    elements.petDockList.className = "pet-dock-list empty-state-inline";
+    elements.petDockList.textContent = "還沒有隊伍夥伴";
+    return;
+  }
+
+  elements.petDockList.className = "pet-dock-list";
+  elements.petDockList.innerHTML = collection.teamPets
+    .map((pet) => {
+      const isActive = pet.id === collection.activePet?.id;
+      return `
+        <button
+          class="pet-dock-item${isActive ? " is-active" : ""}"
+          type="button"
+          data-pet-action="equip"
+          data-pet-id="${escapeHtml(pet.id)}"
+        >
+          <img class="pet-dock-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}">
+          <span class="pet-dock-name">${escapeHtml(pet.name)}</span>
+        </button>
       `;
     })
     .join("");
@@ -1836,6 +1883,7 @@ function setActiveTab(tab) {
   }
   state.activeTab = validTab;
   applyActiveTab();
+  renderPetCompanion();
   persistSettings();
 }
 
