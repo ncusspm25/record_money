@@ -24,8 +24,8 @@ const STORAGE_KEY = "pocket-ledger-transactions";
 const SETTINGS_KEY = "pocket-ledger-settings";
 
 const DEFAULT_CATEGORIES = {
-  expense: ["餐飲", "交通", "日用品", "雜費", "娛樂", "自訂分類"],
-  income: ["薪水", "獎金", "接案", "投資", "退款", "其他收入", "自訂分類"],
+  expense: ["餐飲", "交通", "日用品", "雜費", "娛樂", "投資", "自訂分類"],
+  income: ["薪水", "獎金", "分帳", "投資", "退款", "其他收入", "自訂分類"],
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
