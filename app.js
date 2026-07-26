@@ -85,6 +85,7 @@ const state = {
   activeTab: "quick",
   filters: {
     date: "",
+    range: "all",
     type: "all",
     query: "",
     listLimit: 50,
@@ -113,8 +114,21 @@ const elements = {
   needWantField: document.querySelector("#needWantField"),
   dateInput: document.querySelector("#dateInput"),
   noteInput: document.querySelector("#noteInput"),
+  amountError: document.querySelector("#amountError"),
+  categoryError: document.querySelector("#categoryError"),
+  dateError: document.querySelector("#dateError"),
+  formStatus: document.querySelector("#formStatus"),
+  quickCategoryChips: document.querySelector("#quickCategoryChips"),
+  todayLabel: document.querySelector("#todayLabel"),
+  habitMessage: document.querySelector("#habitMessage"),
+  streakValue: document.querySelector("#streakValue"),
   todayRecordCountValue: document.querySelector("#todayRecordCountValue"),
   todayExpenseValue: document.querySelector("#todayExpenseValue"),
+  weekExpenseValue: document.querySelector("#weekExpenseValue"),
+  weekTrendValue: document.querySelector("#weekTrendValue"),
+  dailyAllowanceValue: document.querySelector("#dailyAllowanceValue"),
+  dailyAllowanceHint: document.querySelector("#dailyAllowanceHint"),
+  quickInsightValue: document.querySelector("#quickInsightValue"),
   dragonCompanionCard: document.querySelector("#dragonCompanionCard"),
   dragonStageImage: document.querySelector("#dragonStageImage"),
   dragonStageName: document.querySelector("#dragonStageName"),
@@ -188,7 +202,8 @@ const elements = {
   signOutButton: document.querySelector("#signOutButton"),
   migrateButton: document.querySelector("#migrateButton"),
   backupNote: document.querySelector("#backupNote"),
-  tabButtons: Array.from(document.querySelectorAll("[data-tab-target]")),
+  tabButtons: Array.from(document.querySelectorAll(".tab-button[data-tab-target]")),
+  tabTriggers: Array.from(document.querySelectorAll("[data-tab-target]")),
   tabPages: Array.from(document.querySelectorAll("[data-tab-page]")),
   installTriggers: Array.from(document.querySelectorAll("[data-install-trigger]")),
 };
@@ -238,7 +253,7 @@ function attachEventListeners() {
   elements.transactionForm.addEventListener("submit", handleSubmit);
   elements.cancelEditButton.addEventListener("click", resetForm);
   elements.categorySelect.addEventListener("change", updateCategoryVisibility);
-  for (const tabButton of elements.tabButtons) {
+  for (const tabButton of elements.tabTriggers) {
     tabButton.addEventListener("click", () => {
       setActiveTab(tabButton.dataset.tabTarget || "quick");
     });
@@ -249,6 +264,8 @@ function attachEventListeners() {
       renderCategoryOptions();
       updateCategoryVisibility();
       updateNeedWantVisibility();
+      renderQuickCategoryChips();
+      updateSaveButtonLabel();
     });
   }
 
@@ -258,8 +275,20 @@ function attachEventListeners() {
 
   elements.amountInput.addEventListener("input", () => {
     const v = Number(elements.amountInput.value);
-    elements.amountInput.classList.toggle("is-invalid", elements.amountInput.value !== "" && v <= 0);
+    setFieldError("amount", elements.amountInput.value !== "" && (v <= 0 || v > 999999999));
+    updateSaveButtonLabel();
   });
+
+  elements.categorySelect.addEventListener("change", () => {
+    setFieldError("category", false);
+    renderQuickCategoryChips();
+  });
+
+  elements.dateInput.addEventListener("input", () => {
+    setFieldError("date", false);
+  });
+
+  elements.quickCategoryChips?.addEventListener("click", handleQuickCategoryClick);
 
   if (elements.copyLastButton) {
     elements.copyLastButton.addEventListener("click", copyLastEntry);
@@ -271,18 +300,20 @@ function attachEventListeners() {
       const today = formatDateInput(new Date());
       if (range === "today") {
         state.filters.date = today;
+        state.filters.range = "exact";
         elements.filterDate.value = today;
       } else if (range === "week") {
-        const d = new Date(); d.setDate(d.getDate() - 6);
-        state.filters.date = formatDateInput(d);
-        elements.filterDate.value = state.filters.date;
+        state.filters.date = "";
+        state.filters.range = "week";
+        elements.filterDate.value = "";
       } else if (range === "month") {
-        const d = new Date(); d.setDate(d.getDate() - 29);
-        state.filters.date = formatDateInput(d);
-        elements.filterDate.value = state.filters.date;
+        state.filters.date = "";
+        state.filters.range = "month";
+        elements.filterDate.value = "";
       }
       state.filters.listLimit = 50;
       persistSettings();
+      renderQuickDateButtons();
       renderTransactions();
     });
   }
@@ -292,6 +323,7 @@ function attachEventListeners() {
       state.monthlyBudget = Math.max(0, Number(elements.monthlyBudgetInput.value) || 0);
       persistSettings();
       renderSummary();
+      renderQuickDashboard();
     });
   }
 
@@ -310,7 +342,9 @@ function attachEventListeners() {
 
   elements.filterDate.addEventListener("input", (event) => {
     state.filters.date = event.target.value;
+    state.filters.range = event.target.value ? "exact" : "all";
     persistSettings();
+    renderQuickDateButtons();
     renderTransactions();
   });
 
@@ -328,6 +362,7 @@ function attachEventListeners() {
 
   elements.clearFiltersButton.addEventListener("click", () => {
     state.filters.date = "";
+    state.filters.range = "all";
     state.filters.type = "all";
     state.filters.query = "";
     state.filters.listLimit = 50;
@@ -335,6 +370,7 @@ function attachEventListeners() {
     elements.filterType.value = "all";
     elements.filterQuery.value = "";
     persistSettings();
+    renderQuickDateButtons();
     renderTransactions();
   });
 
@@ -529,6 +565,7 @@ async function handleSignOut() {
 
 async function handleSubmit(event) {
   event.preventDefault();
+  clearFormErrors();
 
   const formData = new FormData(elements.transactionForm);
   const type = formData.get("type");
@@ -540,13 +577,15 @@ async function handleSubmit(event) {
   const existingId = elements.transactionId.value;
   const existing = state.transactions.find((item) => item.id === existingId);
 
-  if (!amount || amount <= 0) {
+  if (!amount || amount <= 0 || amount > 999999999) {
+    setFieldError("amount", true);
     showToast("請輸入正確金額");
     elements.amountInput.focus();
     return;
   }
 
   if (!category) {
+    setFieldError("category", true);
     showToast("請輸入分類");
     if (elements.categorySelect.value === "自訂分類") {
       elements.customCategoryInput.focus();
@@ -557,6 +596,7 @@ async function handleSubmit(event) {
   }
 
   if (!date) {
+    setFieldError("date", true);
     showToast("請選擇日期");
     elements.dateInput.focus();
     return;
@@ -576,6 +616,9 @@ async function handleSubmit(event) {
 
   elements.saveButton.disabled = true;
   elements.saveButton.textContent = "儲存中…";
+  if (elements.formStatus) {
+    elements.formStatus.textContent = "正在儲存這筆記錄";
+  }
   const petRelease = PET_RELEASES.find((pet) => pet.month === payload.date.slice(0, 7));
   const previousPetStageName = petRelease
     ? decoratePetForMonth(petRelease, state.transactions).name
@@ -597,13 +640,20 @@ async function handleSubmit(event) {
     } else {
       showToast("已存下這筆記帳");
     }
+    if (elements.formStatus) {
+      elements.formStatus.textContent = existing ? "記錄更新成功" : "記帳成功";
+    }
     if (!existing) showCelebration();
   } catch (error) {
     console.error(error);
-    showToast(state.user ? getFirestoreErrorMessage(error) : "本機儲存失敗");
+    const message = state.user ? getFirestoreErrorMessage(error) : "本機儲存失敗";
+    if (elements.formStatus) {
+      elements.formStatus.textContent = message;
+    }
+    showToast(message);
   } finally {
     elements.saveButton.disabled = false;
-    elements.saveButton.textContent = "儲存紀錄";
+    updateSaveButtonLabel();
   }
 }
 
@@ -665,9 +715,11 @@ async function saveTransactionToCloud(transaction) {
 
 function render() {
   renderPetCompanion();
-  renderQuickGlance();
+  renderQuickDashboard();
+  renderQuickCategoryChips();
   renderSummary();
   renderTransactions();
+  renderQuickDateButtons();
   renderAuthPanel();
   renderInstallExperience();
   renderBackupNote();
@@ -745,9 +797,32 @@ function renderTransactions() {
 
   if (allItems.length === 0) {
     elements.transactionList.className = "transaction-list empty-state";
-    elements.transactionList.textContent = state.filters.date || state.filters.type !== "all" || state.filters.query
-      ? "沒有符合篩選條件的資料，試試清除篩選"
-      : "目前還沒有任何記帳資料";
+    const hasFilters = state.filters.range !== "all" || state.filters.type !== "all" || state.filters.query;
+    elements.transactionList.innerHTML = hasFilters
+      ? `
+        <div class="empty-state-copy">
+          <span class="empty-state-symbol" aria-hidden="true">⌕</span>
+          <strong>這個條件還沒有記錄</strong>
+          <p>換個日期或清除篩選，就能回到完整清單。</p>
+          <button class="ghost-button" type="button" data-empty-action="clear">清除篩選</button>
+        </div>
+      `
+      : `
+        <div class="empty-state-copy">
+          <span class="empty-state-symbol" aria-hidden="true">✦</span>
+          <strong>第一筆，會讓這裡開始有故事</strong>
+          <p>記下今天的一筆花費，之後就能看見分類與趨勢。</p>
+          <button class="primary-button" type="button" data-empty-action="quick">開始記帳</button>
+        </div>
+      `;
+    elements.transactionList.querySelector("[data-empty-action]")?.addEventListener("click", (event) => {
+      if (event.currentTarget.dataset.emptyAction === "clear") {
+        elements.clearFiltersButton.click();
+      } else {
+        setActiveTab("quick");
+        elements.amountInput.focus();
+      }
+    });
     return;
   }
 
@@ -955,13 +1030,23 @@ function copyLastEntry() {
   if (typeRadio) typeRadio.checked = true;
   renderCategoryOptions();
   updateNeedWantVisibility();
-  elements.categorySelect.value = last.category;
+  if (Array.from(elements.categorySelect.options).some((option) => option.value === last.category)) {
+    elements.categorySelect.value = last.category;
+  } else {
+    const option = document.createElement("option");
+    option.value = last.category;
+    option.textContent = last.category;
+    elements.categorySelect.append(option);
+    elements.categorySelect.value = last.category;
+  }
   if (last.needWant) {
     const nwRadio = elements.needWantField.querySelector(`input[name="needWant"][value="${last.needWant}"]`);
     if (nwRadio) nwRadio.checked = true;
     updateNeedWantToggle();
   }
   elements.noteInput.value = last.note || "";
+  renderQuickCategoryChips();
+  updateSaveButtonLabel();
   showToast(`已帶入：${last.category} $${last.amount}`);
 }
 
@@ -1027,12 +1112,217 @@ function renderBackupNote() {
   elements.backupNote.textContent = "目前資料保存在本機瀏覽器。建議定期匯出 JSON 備份。";
 }
 
-function renderQuickGlance() {
-  const today = formatDateInput(new Date());
-  const items = state.transactions.filter((item) => item.date === today);
-  const expense = sumAmounts(items.filter((item) => item.type === "expense"));
-  elements.todayRecordCountValue.textContent = `${items.length} 筆`;
-  elements.todayExpenseValue.textContent = formatCurrency(expense);
+function renderQuickDashboard() {
+  const now = new Date();
+  const today = formatDateInput(now);
+  const todayItems = state.transactions.filter((item) => item.date === today);
+  const todayExpense = sumAmounts(todayItems.filter((item) => item.type === "expense"));
+  const weekStart = getStartOfWeek(now);
+  const daysIntoWeek = Math.max(0, Math.round((getDayStamp(today) - getDayStamp(formatDateInput(weekStart))) / DAY_MS));
+  const previousWeekStart = shiftDate(weekStart, -7);
+  const previousWeekEnd = shiftDate(previousWeekStart, daysIntoWeek);
+  const weekItems = filterByDateRange(state.transactions, formatDateInput(weekStart), today);
+  const previousWeekItems = filterByDateRange(
+    state.transactions,
+    formatDateInput(previousWeekStart),
+    formatDateInput(previousWeekEnd)
+  );
+  const weekExpenseItems = weekItems.filter((item) => item.type === "expense");
+  const previousWeekExpenseItems = previousWeekItems.filter((item) => item.type === "expense");
+  const weekExpense = sumAmounts(weekExpenseItems);
+  const previousWeekExpense = sumAmounts(previousWeekExpenseItems);
+  const streak = getCurrentStreak(state.transactions, now);
+
+  elements.todayLabel.textContent = new Intl.DateTimeFormat("zh-TW", {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  }).format(now);
+  elements.todayRecordCountValue.textContent = `今天 ${todayItems.length} 筆`;
+  elements.todayExpenseValue.textContent = formatCurrency(todayExpense);
+  elements.weekExpenseValue.textContent = formatCurrency(weekExpense);
+  elements.weekTrendValue.textContent = getWeekTrendText(weekExpense, previousWeekExpense);
+  elements.streakValue.textContent = String(streak);
+  elements.habitMessage.textContent = getHabitMessage(todayItems.length, streak);
+
+  const currentMonth = formatMonthInput(now);
+  const monthExpense = sumAmounts(
+    filterByMonth(state.transactions, currentMonth).filter((item) => item.type === "expense")
+  );
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const remainingDays = Math.max(1, daysInMonth - now.getDate() + 1);
+
+  if (state.monthlyBudget > 0) {
+    const remainingBudget = state.monthlyBudget - monthExpense;
+    elements.dailyAllowanceValue.textContent = formatCurrency(Math.max(0, remainingBudget / remainingDays));
+    elements.dailyAllowanceHint.textContent = remainingBudget >= 0
+      ? `剩餘 ${formatCurrency(remainingBudget)}，平均分配到月底`
+      : `本月已超出預算 ${formatCurrency(Math.abs(remainingBudget))}`;
+  } else {
+    elements.dailyAllowanceValue.textContent = "尚未設定";
+    elements.dailyAllowanceHint.textContent = "可在本月概況設定預算";
+  }
+
+  const topWeekCategory = groupExpenseByCategory(weekItems)[0];
+  elements.quickInsightValue.textContent = topWeekCategory && weekExpense > 0
+    ? `本週最多花在 ${topWeekCategory.category}，占 ${Math.round((topWeekCategory.total / weekExpense) * 100)}%`
+    : "查看本月分類與花費洞察";
+}
+
+function getWeekTrendText(currentExpense, previousExpense) {
+  if (previousExpense <= 0) {
+    return currentExpense > 0 ? "上週同期尚無支出" : "這週還沒有支出";
+  }
+
+  const percent = Math.round(((currentExpense - previousExpense) / previousExpense) * 100);
+  if (Math.abs(percent) < 3) {
+    return "與上週同期差不多";
+  }
+
+  return percent > 0
+    ? `比上週同期多 ${Math.abs(percent)}%`
+    : `比上週同期少 ${Math.abs(percent)}%`;
+}
+
+function getHabitMessage(todayCount, streak) {
+  if (todayCount > 0) {
+    return `今天已完成 ${todayCount} 筆，連續 ${Math.max(1, streak)} 天保持清楚。`;
+  }
+
+  if (streak > 0) {
+    return `今天再記一筆，就能延續 ${streak} 天的好節奏。`;
+  }
+
+  return state.transactions.length
+    ? "今天還沒有記錄，花十秒補上第一筆吧。"
+    : "從第一筆開始，慢慢看見自己的花費節奏。";
+}
+
+function getCurrentStreak(items, now = new Date()) {
+  const todayStamp = getDayStamp(formatDateInput(now));
+  const uniqueStamps = Array.from(
+    new Set(items.map((item) => getDayStamp(item.date)).filter((stamp) => Number.isFinite(stamp) && stamp <= todayStamp))
+  ).sort((left, right) => right - left);
+
+  if (!uniqueStamps.length || todayStamp - uniqueStamps[0] > DAY_MS) {
+    return 0;
+  }
+
+  let streak = 1;
+  for (let index = 1; index < uniqueStamps.length; index += 1) {
+    if (uniqueStamps[index - 1] - uniqueStamps[index] !== DAY_MS) {
+      break;
+    }
+    streak += 1;
+  }
+
+  return streak;
+}
+
+function getStartOfWeek(date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const mondayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - mondayOffset);
+  return start;
+}
+
+function shiftDate(date, days) {
+  const shifted = new Date(date);
+  shifted.setDate(shifted.getDate() + days);
+  return shifted;
+}
+
+function filterByDateRange(items, startDate, endDate) {
+  return items.filter((item) => item.date >= startDate && item.date <= endDate);
+}
+
+function renderQuickCategoryChips() {
+  if (!elements.quickCategoryChips) {
+    return;
+  }
+
+  const type = getCurrentType();
+  const recentCategories = [...state.transactions]
+    .filter((item) => item.type === type)
+    .sort(compareTransactions)
+    .map((item) => item.category);
+  const availableCategories = DEFAULT_CATEGORIES[type].filter((category) => category !== "自訂分類");
+  const categories = Array.from(new Set([...recentCategories, ...availableCategories]))
+    .filter((category) => availableCategories.includes(category))
+    .slice(0, 5);
+  const selected = elements.categorySelect.value;
+
+  elements.quickCategoryChips.innerHTML = categories.map((category) => `
+    <button
+      class="category-chip${category === selected ? " is-active" : ""}"
+      type="button"
+      data-quick-category="${escapeHtml(category)}"
+      aria-pressed="${category === selected}"
+    >${escapeHtml(category)}</button>
+  `).join("");
+}
+
+function handleQuickCategoryClick(event) {
+  const button = event.target.closest("[data-quick-category]");
+  if (!button) {
+    return;
+  }
+
+  const category = button.dataset.quickCategory || "";
+  const optionExists = Array.from(elements.categorySelect.options).some((option) => option.value === category);
+  if (!optionExists) {
+    return;
+  }
+
+  elements.categorySelect.value = category;
+  setFieldError("category", false);
+  renderQuickCategoryChips();
+  if (!elements.amountInput.value) {
+    elements.amountInput.focus();
+  }
+}
+
+function setFieldError(field, hasError) {
+  const input = field === "amount"
+    ? elements.amountInput
+    : field === "category"
+      ? elements.categorySelect
+      : elements.dateInput;
+  const error = field === "amount"
+    ? elements.amountError
+    : field === "category"
+      ? elements.categoryError
+      : elements.dateError;
+
+  input?.classList.toggle("is-invalid", hasError);
+  input?.setAttribute("aria-invalid", String(hasError));
+  if (error) {
+    error.hidden = !hasError;
+  }
+}
+
+function clearFormErrors() {
+  setFieldError("amount", false);
+  setFieldError("category", false);
+  setFieldError("date", false);
+}
+
+function updateSaveButtonLabel() {
+  if (!elements.saveButton || elements.saveButton.disabled) {
+    return;
+  }
+
+  if (elements.transactionId.value) {
+    elements.saveButton.textContent = "更新這筆紀錄";
+    return;
+  }
+
+  const amount = Number(elements.amountInput.value);
+  const typeLabel = getCurrentType() === "income" ? "收入" : "支出";
+  elements.saveButton.textContent = amount > 0
+    ? `記下 ${formatCurrency(amount)} ${typeLabel}`
+    : `記下這筆${typeLabel}`;
 }
 
 function renderPetCompanion() {
@@ -1119,7 +1409,8 @@ function renderPetRoster(container, pets, activePetId, mode) {
 
       return `
         <article class="pet-card${isActive ? " is-active" : ""}">
-          <img class="pet-card-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}">
+          <img class="pet-card-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}"
+               loading="lazy" decoding="async" width="220" height="220">
           <div class="pet-card-meta">
             <strong>${escapeHtml(pet.name)}</strong>
             <span>${escapeHtml(formatMonthLabel(pet.month))} · ${pet.recordedDays} / 30 天</span>
@@ -1178,7 +1469,8 @@ function renderPetDock(collection) {
           data-pet-action="equip"
           data-pet-id="${escapeHtml(pet.id)}"
         >
-          <img class="pet-dock-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}">
+          <img class="pet-dock-image" src="${escapeHtml(pet.image)}" alt="${escapeHtml(pet.name)}"
+               loading="lazy" decoding="async" width="56" height="56">
           <span class="pet-dock-name">${escapeHtml(pet.name)}</span>
         </button>
       `;
@@ -1511,7 +1803,15 @@ function getSyncModeMeta() {
 function getFilteredTransactions() {
   let items = [...state.transactions].sort(compareTransactions);
 
-  items = filterByDate(items, state.filters.date);
+  if (state.filters.range === "week") {
+    const start = shiftDate(new Date(), -6);
+    items = filterByDateRange(items, formatDateInput(start), formatDateInput(new Date()));
+  } else if (state.filters.range === "month") {
+    const start = shiftDate(new Date(), -29);
+    items = filterByDateRange(items, formatDateInput(start), formatDateInput(new Date()));
+  } else {
+    items = filterByDate(items, state.filters.date);
+  }
 
   if (state.filters.type !== "all") {
     items = items.filter((item) => item.type === state.filters.type);
@@ -1525,6 +1825,17 @@ function getFilteredTransactions() {
   }
 
   return items;
+}
+
+function renderQuickDateButtons() {
+  for (const button of document.querySelectorAll("[data-quick-date]")) {
+    const range = button.dataset.quickDate;
+    const isActive = (range === "today" && state.filters.range === "exact" && state.filters.date === formatDateInput(new Date()))
+      || (range === "week" && state.filters.range === "week")
+      || (range === "month" && state.filters.range === "month");
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
 }
 
 function startEdit(id) {
@@ -1552,10 +1863,18 @@ function startEdit(id) {
   renderCategoryOptions();
   if (DEFAULT_CATEGORIES[item.type].includes(item.category)) {
     elements.categorySelect.value = item.category;
-    elements.customCategoryInput.value = "";
-  } else {
+    if (elements.customCategoryInput) {
+      elements.customCategoryInput.value = "";
+    }
+  } else if (elements.customCategoryInput) {
     elements.categorySelect.value = "自訂分類";
     elements.customCategoryInput.value = item.category;
+  } else {
+    const option = document.createElement("option");
+    option.value = item.category;
+    option.textContent = item.category;
+    elements.categorySelect.append(option);
+    elements.categorySelect.value = item.category;
   }
 
   const needVal = item.needWant === "want" ? "want" : "need";
@@ -1563,6 +1882,8 @@ function startEdit(id) {
   if (needRadio) needRadio.checked = true;
   updateCategoryVisibility();
   updateNeedWantVisibility();
+  renderQuickCategoryChips();
+  updateSaveButtonLabel();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1576,11 +1897,15 @@ function resetForm() {
     elements.formTitle.textContent = "快速記一筆";
   }
   elements.cancelEditButton.hidden = true;
+  clearFormErrors();
   const needDefault = elements.needWantField.querySelector('input[name="needWant"][value="need"]');
   if (needDefault) needDefault.checked = true;
   renderCategoryOptions();
   updateCategoryVisibility();
   updateNeedWantVisibility();
+  updateNeedWantToggle();
+  renderQuickCategoryChips();
+  updateSaveButtonLabel();
 }
 
 async function deleteTransaction(id) {
@@ -1850,6 +2175,7 @@ function hydrateSettings() {
     state.summaryMonth = settings.summaryMonth || state.summaryMonth;
     state.activeTab = settings.activeTab || state.activeTab;
     state.filters.date = settings.filters?.date ?? state.filters.date;
+    state.filters.range = settings.filters?.range || (state.filters.date ? "exact" : "all");
     state.filters.type = settings.filters?.type || state.filters.type;
     state.filters.query = settings.filters?.query || state.filters.query;
     state.petTeamOrder = Array.isArray(settings.petTeamOrder) ? settings.petTeamOrder.map(String) : [];
@@ -1938,7 +2264,11 @@ function applyActiveTab() {
   for (const button of elements.tabButtons) {
     const isActive = button.dataset.tabTarget === state.activeTab;
     button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-current", isActive ? "page" : "false");
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
   }
 }
 

@@ -14,7 +14,7 @@
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <title>元寶記帳</title>
 </head>
@@ -39,7 +39,8 @@
           <div class="header-dragon-visual">
             <div class="header-dragon-orbit" aria-hidden="true"></div>
             <img id="dragonStageImage" class="header-dragon-img"
-                 src="assets/dragons/dragon-stage-1.png" alt="陪你記帳的小火龍">
+                 src="assets/dragons/dragon-stage-1.png" alt="陪你記帳的小火龍"
+                 width="110" height="110" fetchpriority="high">
           </div>
         </div>
         <div class="header-dragon-footer">
@@ -52,9 +53,55 @@
 
     <main class="app-content">
       <section class="tab-page is-active" data-tab-page="quick">
+        <section class="surface quick-dashboard" aria-labelledby="quickDashboardTitle">
+          <div class="quick-dashboard-head">
+            <div>
+              <p id="todayLabel" class="eyebrow">今天</p>
+              <h2 id="quickDashboardTitle">先記下來，就已經很好</h2>
+              <p id="habitMessage" class="surface-note">第一筆會是最好的開始。</p>
+            </div>
+            <div class="streak-pill" aria-label="連續記帳天數">
+              <span aria-hidden="true">✦</span>
+              <strong id="streakValue">0</strong>
+              <small>連續天</small>
+            </div>
+          </div>
+
+          <div class="quick-status-grid">
+            <article class="quick-status-item expense">
+              <span>今日支出</span>
+              <strong id="todayExpenseValue">$0</strong>
+              <small id="todayRecordCountValue">今天 0 筆</small>
+            </article>
+            <article class="quick-status-item">
+              <span>本週支出</span>
+              <strong id="weekExpenseValue">$0</strong>
+              <small id="weekTrendValue">還沒有可比較資料</small>
+            </article>
+            <article class="quick-status-item allowance">
+              <span>今日安心額度</span>
+              <strong id="dailyAllowanceValue">尚未設定</strong>
+              <small id="dailyAllowanceHint">可在本月概況設定預算</small>
+            </article>
+          </div>
+
+          <button class="dashboard-link" type="button" data-tab-target="overview">
+            <span id="quickInsightValue">查看本月洞察</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </section>
+
         <section class="surface surface-hero">
-          <form id="transactionForm" class="entry-form">
+          <form id="transactionForm" class="entry-form" novalidate>
             <input id="transactionId" type="hidden">
+
+            <div class="entry-form-head">
+              <div>
+                <p class="eyebrow">Quick Entry</p>
+                <h2 id="formTitle">快速記一筆</h2>
+              </div>
+              <span class="entry-step-badge">3 步完成</span>
+            </div>
 
             <div class="type-toggle" role="radiogroup" aria-label="收支類型">
               <label>
@@ -69,15 +116,21 @@
 
             <label class="amount-label">
               <span>金額</span>
-              <input id="amountInput" type="number" inputmode="decimal" min="0" step="1" placeholder="0">
+              <span class="amount-input-wrap">
+                <span class="amount-currency" aria-hidden="true">$</span>
+                <input id="amountInput" type="number" inputmode="decimal" min="1" max="999999999"
+                       step="1" placeholder="0" required aria-describedby="amountError">
+              </span>
+              <small id="amountError" class="field-error" role="alert" hidden>請輸入大於 0 的金額</small>
             </label>
 
-            <div class="form-grid two-col">
+            <div class="form-grid two-col category-grid">
               <label>
                 <span>分類</span>
-                <select id="categorySelect">
+                <select id="categorySelect" required aria-describedby="categoryError">
                   <option value="">請選擇分類</option>
                 </select>
+                <small id="categoryError" class="field-error" role="alert" hidden>請選擇分類</small>
               </label>
 
               <div id="needWantField" class="need-want-field">
@@ -95,37 +148,32 @@
               </div>
             </div>
 
+            <div class="category-shortcuts">
+              <span class="field-label">常用分類</span>
+              <div id="quickCategoryChips" class="category-chip-row" aria-label="常用分類捷徑"></div>
+            </div>
 
-
-            <div class="form-grid two-col">
+            <div class="form-grid two-col detail-grid">
               <label>
                 <span>日期</span>
-                <input id="dateInput" type="date">
+                <input id="dateInput" type="date" required aria-describedby="dateError">
+                <small id="dateError" class="field-error" role="alert" hidden>請選擇日期</small>
               </label>
               <label>
                 <span>備註</span>
-                <input id="noteInput" type="text" placeholder="例如 午餐、捷運、薪水">
+                <input id="noteInput" type="text" maxlength="80" enterkeyhint="done"
+                       placeholder="例如 午餐、捷運、薪水">
               </label>
             </div>
 
             <div class="form-actions">
-              <button id="saveButton" type="submit" class="primary-button">儲存紀錄</button>
+              <button id="saveButton" type="submit" class="primary-button">記下這筆支出</button>
               <button id="cancelEditButton" class="ghost-button" type="button" hidden>取消編輯</button>
               <button id="copyLastButton" class="ghost-button" type="button">帶入上一筆</button>
             </div>
+            <p id="formStatus" class="sr-only" role="status" aria-live="polite"></p>
           </form>
         </section>
-
-        <div class="quick-glance-grid">
-          <article class="mini-surface highlight-surface">
-            <span>今天已記錄</span>
-            <strong id="todayRecordCountValue">0 筆</strong>
-          </article>
-          <article class="mini-surface">
-            <span>今日支出</span>
-            <strong id="todayExpenseValue">$0</strong>
-          </article>
-        </div>
 
       </section>
 
@@ -469,7 +517,7 @@
     </div>
   </div>
 
-  <div id="toast" class="toast" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <template id="transactionItemTemplate">
     <article class="transaction-item">
